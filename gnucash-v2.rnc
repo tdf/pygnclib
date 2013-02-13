@@ -76,23 +76,24 @@ Book = element gnc:book {
 
 # from write_book in src/backend/xml/io-gncxml-v2.c
 
-  element gnc:count-data { attribute cd:type { "commodity" }, xsd:int }?,
-  element gnc:count-data { attribute cd:type { "account" }, xsd:int }?,
-  element gnc:count-data { attribute cd:type { "transaction" }, xsd:int }?,
-  element gnc:count-data { attribute cd:type { "schedxaction" }, xsd:int }?,
-  element gnc:count-data { attribute cd:type { "budget" }, xsd:int }?,
+  element gnc:count-data { (attribute cd:type { "commodity" }       |
+                            attribute cd:type { "account" }         |
+                            attribute cd:type { "transaction" }     |
+                            attribute cd:type { "schedxaction" }    |
+                            attribute cd:type { "budget" }          |
 
 # plugins (those with a get_count slot)
 
-  element gnc:count-data { attribute cd:type { "gnc:GncBillTerm" }, xsd:int }?,
-  element gnc:count-data { attribute cd:type { "gnc:GncCustomer" }, xsd:int }?,
-  element gnc:count-data { attribute cd:type { "gnc:GncEmployee" }, xsd:int }?,
-  element gnc:count-data { attribute cd:type { "gnc:GncEntry" }, xsd:int }?,
-  element gnc:count-data { attribute cd:type { "gnc:GncInvoice" }, xsd:int }?,
-  element gnc:count-data { attribute cd:type { "gnc:GncJob" }, xsd:int }?,
-  element gnc:count-data { attribute cd:type { "gnc:GncOrder" }, xsd:int }?,
-  element gnc:count-data { attribute cd:type { "gnc:GncTaxTable" }, xsd:int }?,
-  element gnc:count-data { attribute cd:type { "gnc:GncVendor" }, xsd:int }?,
+                            attribute cd:type { "gnc:GncBillTerm" } |
+                            attribute cd:type { "gnc:GncCustomer" } |
+                            attribute cd:type { "gnc:GncEmployee" } |
+                            attribute cd:type { "gnc:GncEntry" }    |
+                            attribute cd:type { "gnc:GncInvoice" }  |
+                            attribute cd:type { "gnc:GncJob" }      |
+                            attribute cd:type { "gnc:GncOrder" }    |
+                            attribute cd:type { "gnc:GncTaxTable" } |
+                            attribute cd:type { "gnc:GncVendor" }),
+                           xsd:int }*,
 
   Commodity*,
   PriceDb?,
@@ -122,16 +123,18 @@ KvpSlot = element slot {
   KvpValue
 }
 
-KvpValue = ( element slot:value { attribute type { "integer" }, xsd:int }
-           | element slot:value { attribute type { "double" }, xsd:double }
-           | element slot:value { attribute type { "numeric" }, GncNumeric }
-           | element slot:value { attribute type { "string" }, text }
-           | element slot:value { attribute type { "guid" }, GUID }
-           | element slot:value { attribute type { "timespec" }, TimeSpec }
-           | element slot:value { attribute type { "gdate" }, GDate }
-           | element slot:value { attribute type { "binary" }, xsd:string { pattern = "[0-9a-f]*" }}
-           | element slot:value { attribute type { "list" }, KvpValue* }
-           | element slot:value { attribute type { "frame" }, KvpSlot* }
+KvpValue = ( element slot:value { (
+                 ( attribute type { "integer" }, xsd:int )
+               | ( attribute type { "double" }, xsd:double )
+               | ( attribute type { "numeric" }, GncNumeric )
+               | ( attribute type { "string" }, text )
+               | ( attribute type { "guid" }, GUID )
+               | ( attribute type { "timespec" }, TimeSpec )
+               | ( attribute type { "gdate" }, GDate )
+               | ( attribute type { "binary" }, xsd:string { pattern = "[0-9a-f]*" } )
+               | ( attribute type { "list" }, KvpValue* )
+               | ( attribute type { "frame" }, KvpSlot* )
+             ) }
            )
 
 # various patterns
