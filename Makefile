@@ -14,8 +14,11 @@ all: bindings
 clean:
 	rm -rf $(OUTDIR)
 
-bindings:
-	mkdir -p $(OUTDIR) && \
-	PYTHONPATH=${PYXB_ROOT} ${PYXB_ROOT}/scripts/pyxbgen --binding-root=$(OUTDIR) --module=gnc -u gnucash.xsd
+$(OUTDIR)/xsd/gnucash.xsd: gnucash-v2.rnc
+	mkdir -p $(OUTDIR)/xsd
+	trang $< $@
+
+bindings: $(OUTDIR)/xsd/gnucash.xsd
+	PYTHONPATH=${PYXB_ROOT} ${PYXB_ROOT}/scripts/pyxbgen --schema-root=$(OUTDIR)/xsd --module=gnc gnucash.xsd
 
 # vim: set noet sw=4 ts=4:
