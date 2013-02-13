@@ -1,0 +1,3 @@
+[submodule "pyxb"]
+	path = pyxb
+	url = git://pyxb.git.sourceforge.net/gitroot/pyxb/pyxb
