@@ -44,39 +44,19 @@ namespace taxtable = "http://www.gnucash.org/XML/taxtable"
 namespace tte = "http://www.gnucash.org/XML/tte"
 namespace vendor = "http://www.gnucash.org/XML/vendor"
 
-start = GnuCashXml
-
-GnuCashXml = element gnc-v2 {
+start = element gnc:gnc-v2 {
 
 # from gnc_book_write_to_xml_filehandle_v2 in src/backend/xml/io-gncxml-v2.c
-
-  ( ( element gnc:count-data { attribute cd:type { "book" }, "1" },
-      Book
-    )
-
-# from gnc_book_write_accounts_to_xml_filehandle_v2 in src/backend/xml/io-gncxml-v2.c
-
-  | ( element gnc:count-data { attribute cd:type { "commodity" }, xsd:int }?,
-      element gnc:count-data { attribute cd:type { "account" }, xsd:int }?,
-      Commodity*,
-      Account*
-    )
+  CountData,
+  (
+      Book | ( Commodity*, Account* )
   )
 }
 
 # from write_book in src/backend/xml/io-gncxml-v2.c
-
-Book = element gnc:book {
-  attribute version { "2.0.0" },
-
-# from write_book_parts in src/backend/xml/gnc-book-xml-v2.c
-
-  element book:id { attribute type { "guid" }, GUID },
-  element book:slots { KvpSlot+ }?,
-
-# from write_book in src/backend/xml/io-gncxml-v2.c
-
-  element gnc:count-data { (attribute cd:type { "commodity" }       |
+CountData = element gnc:count-data {
+                          ( attribute cd:type { "book" }            |
+                            attribute cd:type { "commodity" }       |
                             attribute cd:type { "account" }         |
                             attribute cd:type { "transaction" }     |
                             attribute cd:type { "schedxaction" }    |
@@ -92,8 +72,22 @@ Book = element gnc:book {
                             attribute cd:type { "gnc:GncJob" }      |
                             attribute cd:type { "gnc:GncOrder" }    |
                             attribute cd:type { "gnc:GncTaxTable" } |
-                            attribute cd:type { "gnc:GncVendor" }),
-                           xsd:int }*,
+                            attribute cd:type { "gnc:GncVendor" } ),
+                           xsd:int }
+
+# from write_book in src/backend/xml/io-gncxml-v2.c
+
+Book = element gnc:book {
+  attribute version { "2.0.0" },
+
+# from write_book_parts in src/backend/xml/gnc-book-xml-v2.c
+
+  element book:id { attribute type { "guid" }, GUID },
+  element book:slots { KvpSlot+ }?,
+
+# from write_book in src/backend/xml/io-gncxml-v2.c
+
+  CountData*,
 
   Commodity*,
   PriceDb?,
@@ -155,8 +149,8 @@ GDate = element gdate { xsd:string { pattern = "[0-9]{4}-[0-9]{2}-[0-9]{2}" } }
 
 Commodity = element gnc:commodity {
   attribute version { "2.0.0" },
-  ( ( element cmdty:space { "ISO4217" },    # catégorie (monnaies)
-      element cmdty:id { text }    # dénomination
+  ( ( element cmdty:space { text },  # catégorie (monnaies)
+      element cmdty:id { text }      # dénomination
     )
   | ( element cmdty:space { text },
       element cmdty:id { text },

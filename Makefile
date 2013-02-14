@@ -10,15 +10,25 @@
 OUTDIR=out
 PYXB_ROOT=pyxb
 
-all: bindings
+all: check
 clean:
 	rm -rf $(OUTDIR)
 
-$(OUTDIR)/xsd/gnucash.xsd: gnucash-v2.rnc
-	mkdir -p $(OUTDIR)/xsd
+# create xsd schema from rnc on the fly, fixup toplevel xsd
+$(OUTDIR)/xsd/gnc.xsd: gnucash-v2.rnc
+	@mkdir -p $(OUTDIR)/xsd
 	trang $< $@
+	@cd $(OUTDIR)/xsd && patch -p0 < ../../gnc.xsd.patch
 
-bindings: $(OUTDIR)/xsd/gnucash.xsd
-	PYTHONPATH=${PYXB_ROOT} ${PYXB_ROOT}/scripts/pyxbgen --schema-root=$(OUTDIR)/xsd --module=gnc gnucash.xsd
+# fixup generated schema
+$(OUTDIR)/xsd/toplevel.xsd: toplevel.xsd
+	@mkdir -p $(OUTDIR)/xsd
+	@cp $< $@
+
+$(OUTDIR)/gnc.py: $(OUTDIR)/xsd/toplevel.xsd $(OUTDIR)/xsd/gnc.xsd
+	PYTHONPATH=${PYXB_ROOT} ${PYXB_ROOT}/scripts/pyxbgen --default-namespace-public --schema-root=$(OUTDIR)/xsd --binding-root=$(OUTDIR) --module=toplevel -u toplevel.xsd
+
+check: $(OUTDIR)/gnc.py test.py gnc-testdata.xml
+	PYTHONPATH=${PYXB_ROOT}:$(OUTDIR) python test.py gnc-testdata.xml
 
 # vim: set noet sw=4 ts=4:

@@ -1,0 +1,23 @@
+--- gnc.xsd	2013-02-17 21:50:46.362912317 +0100
++++ gnc.xsd	2013-02-17 21:51:56.143313887 +0100
+@@ -43,20 +43,6 @@
+   <xs:import namespace="http://www.gnucash.org/XML/ts" schemaLocation="ts.xsd"/>
+   <xs:import namespace="http://www.gnucash.org/XML/tte" schemaLocation="tte.xsd"/>
+   <xs:import namespace="http://www.gnucash.org/XML/vendor" schemaLocation="vendor.xsd"/>
+-  <xs:element name="gnc-v2">
+-    <xs:complexType>
+-      <xs:sequence>
+-        <xs:element ref="gnc:count-data"/>
+-        <xs:choice>
+-          <xs:element ref="gnc:book"/>
+-          <xs:sequence>
+-            <xs:element minOccurs="0" maxOccurs="unbounded" ref="gnc:commodity"/>
+-            <xs:element minOccurs="0" maxOccurs="unbounded" ref="gnc:account"/>
+-          </xs:sequence>
+-        </xs:choice>
+-      </xs:sequence>
+-    </xs:complexType>
+-  </xs:element>
+   <!-- from write_book in src/backend/xml/io-gncxml-v2.c -->
+   <xs:element name="count-data">
+     <xs:complexType>

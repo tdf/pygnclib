@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Hack to make trang-generated xsd files work with pyxb.
+
+  gnucash-v2.rnc has a single, namespace-less toplevel document node
+  gnc-v2, that trang sticks into the same xsd as other content (from
+  the gnc namespace). Pyxb chokes on that, sticking it into the
+  surrounding xsd file's target namespace. Extended fixing attempts
+  made me think this is either a design error, or an XSD spec
+  ambiguity.
+
+  Either way, workaround this issue via this one extra indirection
+  (note of course gnc-v2 is artificially removed from the copied
+  gnucash-v2.rnc)
+-->
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+		   xmlns:gnc="http://www.gnucash.org/XML/gnc"
+		   elementFormDefault="qualified">
+  <xs:import namespace="http://www.gnucash.org/XML/gnc" schemaLocation="gnc.xsd"/>
+  <xs:element name="gnc-v2">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="gnc:count-data"/>
+        <xs:choice>
+          <xs:element ref="gnc:book"/>
+          <xs:sequence>
+            <xs:element minOccurs="0" maxOccurs="unbounded" ref="gnc:commodity"/>
+            <xs:element minOccurs="0" maxOccurs="unbounded" ref="gnc:account"/>
+          </xs:sequence>
+        </xs:choice>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+</xs:schema>
