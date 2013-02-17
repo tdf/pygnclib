@@ -49,6 +49,13 @@
   <cmdty:quote_source>currency</cmdty:quote_source>
   <cmdty:quote_tz/>
 </gnc:commodity>
+<gnc:commodity version="2.0.0">
+  <cmdty:space>template1</cmdty:space>
+  <cmdty:id>template2</cmdty:id>
+  <cmdty:name>template3</cmdty:name>
+  <cmdty:xcode>template4</cmdty:xcode>
+  <cmdty:fraction>1</cmdty:fraction>
+</gnc:commodity>
 <gnc:account version="2.0.0">
   <act:name>Root Account</act:name>
   <act:id type="guid">71607cde73afae2edaf31c2107319999</act:id>
