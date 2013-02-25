@@ -25,10 +25,10 @@ $(OUTDIR)/xsd/toplevel.xsd: toplevel.xsd
 	@mkdir -p $(OUTDIR)/xsd
 	@cp $< $@
 
-$(OUTDIR)/gnc.py: $(OUTDIR)/xsd/toplevel.xsd $(OUTDIR)/xsd/gnc.xsd
-	PYTHONPATH=${PYXB_ROOT} ${PYXB_ROOT}/scripts/pyxbgen --default-namespace-public --schema-root=$(OUTDIR)/xsd --binding-root=$(OUTDIR) --module=toplevel -u toplevel.xsd
+$(OUTDIR)/gnucash.py: $(OUTDIR)/xsd/toplevel.xsd $(OUTDIR)/xsd/gnc.xsd
+	PYTHONPATH=${PYXB_ROOT} ${PYXB_ROOT}/scripts/pyxbgen --default-namespace-public --schema-root=$(OUTDIR)/xsd --binding-root=$(OUTDIR) --module=gnucash -u toplevel.xsd
 
-check: $(OUTDIR)/gnc.py test.py gnc-testdata.xml
+check: $(OUTDIR)/gnucash.py test.py gnc-testdata.xml
 	PYTHONPATH=${PYXB_ROOT}:$(OUTDIR) python test.py gnc-testdata.xml
 
 # vim: set noet sw=4 ts=4:
