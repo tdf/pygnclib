@@ -54,7 +54,8 @@ try:
           gcxml,
           location_base=gcfile)
     #pyxb.RequireValidWhenGenerating(False)
-    print doc.toxml().encode('utf-8')
+    dom = doc.toDOM()
+    print dom.toprettyxml(indent=" ", encoding='utf-8')
 except pyxb.UnrecognizedContentError as e:
     print '*** ERROR validating input:'
     print 'Unrecognized element "%s" at %s (details: %s)' % (e.content.expanded_name, e.content.location, e.details())
