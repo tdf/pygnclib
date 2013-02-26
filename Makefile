@@ -31,4 +31,7 @@ $(OUTDIR)/gnucash.py: $(OUTDIR)/xsd/toplevel.xsd $(OUTDIR)/xsd/gnc.xsd
 check: $(OUTDIR)/gnucash.py test.py gnc-testdata.xml
 	PYTHONPATH=${PYXB_ROOT}:$(OUTDIR) python test.py gnc-testdata.xml
 
+check2: $(OUTDIR)/gnucash.py paypal.py gnc-testdata.xml
+	PYTHONPATH=${PYXB_ROOT}:$(OUTDIR) python paypal.py gnc-testdata.xml
+
 # vim: set noet sw=4 ts=4:
