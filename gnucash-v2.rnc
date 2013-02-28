@@ -10,6 +10,9 @@
 
 # from write_v2_header in src/backend/xml/io-gncxml-v2.c
 
+# as per gnucash/LICENSE, this file is licensed under GPL Version 2,
+# or (at your option) Version 3.
+
 namespace gnc = "http://www.gnucash.org/XML/gnc"
 namespace act = "http://www.gnucash.org/XML/act"
 namespace book = "http://www.gnucash.org/XML/book"

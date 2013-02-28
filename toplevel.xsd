@@ -12,6 +12,10 @@
   Either way, workaround this issue via this one extra indirection
   (note of course gnc-v2 is artificially removed from the copied
   gnucash-v2.rnc)
+
+  By transitivity, and being based on a (tiny) part of gnucash-v2.rnc,
+  this file is licensed under GPL Version 2, or (at your option)
+  Version 3.
 -->
 <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
 		   xmlns:gnc="http://www.gnucash.org/XML/gnc"
