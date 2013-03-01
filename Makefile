@@ -28,10 +28,8 @@ $(OUTDIR)/xsd/toplevel.xsd: toplevel.xsd
 $(OUTDIR)/gnucash.py: $(OUTDIR)/xsd/toplevel.xsd $(OUTDIR)/xsd/gnc.xsd
 	PYTHONPATH=${PYXB_ROOT} ${PYXB_ROOT}/scripts/pyxbgen --default-namespace-public --schema-root=$(OUTDIR)/xsd --binding-root=$(OUTDIR) --module=gnucash -u toplevel.xsd
 
-check: $(OUTDIR)/gnucash.py test.py gnc-testdata.xml
-	PYTHONPATH=${PYXB_ROOT}:$(OUTDIR) python test.py gnc-testdata.xml
-
-check2: $(OUTDIR)/gnucash.py paypal.py gnc-testdata.xml
-	PYTHONPATH=${PYXB_ROOT}:$(OUTDIR) python paypal.py gnc-testdata.xml
+check: $(OUTDIR)/gnucash.py test.py gnc-testdata.xml paypal.py testfile.csv
+	PYTHONPATH=${PYXB_ROOT}:$(OUTDIR) python test.py gnc-testdata.xml $(OUTDIR)/testout.xml
+	PYTHONPATH=${PYXB_ROOT}:$(OUTDIR) python paypal.py -p gnc-testdata.xml testfile.csv $(OUTDIR)/paypalout.xml
 
 # vim: set noet sw=4 ts=4:
