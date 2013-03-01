@@ -162,6 +162,8 @@ gncfile = args.ledger_gnucash
 csvfile = args.paypal_csv
 outfile = args.output_gnucash
 
+if args.verbosity > 0: print "Opening gnc file"
+
 # read GnuCash data
 try:
     f = gzip.open(gncfile)
@@ -172,6 +174,8 @@ except:
 
 # read paypal csv data
 paypal_csv = csv.DictReader(open(csvfile), delimiter=args.delimiter, quotechar=args.quotechar)
+
+if args.verbosity > 0: print "Parsing gnc file"
 
 try:
     doc = gnucash.CreateFromDocument(
@@ -191,6 +195,8 @@ if args.script:
         ns_name = "script"+str(index)
         exec "import "+script+" as "+ns_name
         conversion_scripts[eval(ns_name+".type_and_state")] = ns_name
+
+if args.verbosity > 0: print "Importing CSV transactions"
 
 accounts = {}
 old_lines = []
@@ -223,7 +229,8 @@ for index,line in enumerate(paypal_csv):
         # merge previous currency conversions, if any
         if old_lines:
             if len(old_lines) != 2 or old_lines[0][" Currency"] != "EUR" or old_lines[0][" Status"] != "Completed":
-                print "Inconsistent currency conversion in line %d, bailing out" % index
+                print "Inconsistent currency conversion in line %d of %s, bailing out" % (index, args.paypal_csv)
+                if args.verbosity > 0: print "Context: "+str(line)
                 exit(1)
             from_subject  = old_lines[0][" Name"]
             from_transID  = old_lines[0][" Transaction ID"]
@@ -237,8 +244,12 @@ for index,line in enumerate(paypal_csv):
             transaction_comment = "[%s via %s and %s]" % (from_subject, from_transID, to_transID)
 
         if transaction_currency != "EUR":
-            print "Wrong currency for main transaction encountered in line %d, bailing out" % index
-            exit(1)
+            # in all cases, shunt currency to EUR, if necessary sort out transaction manually afterwards
+            transaction_currency = 'EUR'
+            # interesting corner case - foreign currency, but zero net amount. Just ignore that.
+            if transaction_value != '0,00':
+                print "Wrong currency for main transaction encountered in line %d of %s, check manually!" % (index, args.paypal_csv)
+                if args.verbosity > 0: print "Context: "+str(line)
 
         # stick unmatched transactions into Imbalance account
         account1_name = "PayPal"
@@ -262,6 +273,8 @@ for index,line in enumerate(paypal_csv):
 
         # add it to ledger
         doc.book.append(new_trn)
+
+if args.verbosity > 0: print "Writing resulting ledger"
 
 # write out amended ledger
 out = open(outfile, "wb")
