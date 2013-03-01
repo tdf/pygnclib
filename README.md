@@ -46,7 +46,11 @@ Since most of what we need to do here involves lots of heuristics and
 customization, and the amount of data processed is comparatively small
 (TDF needs to grow for a few more years before we get even close to
 one million transactions per year), going pure scripting language
-seemed to fit the bill nicely. Thus the choice for python.
+seemed to fit the bill nicely. Thus the choice for python. Also, I
+learned to value doing things locally (auditability, repeatability,
+and as a corollary, much improved debuggability) - so grabbing stuff
+via CSV from the various money sources and running local scripts was
+it, then.
 
 For implementing the file format import and export, I recalled PyXB
 
