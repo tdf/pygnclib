@@ -188,7 +188,7 @@ conversion_scripts = {}
 # import conversion scripts
 if args.script:
     for index,script in enumerate(args.script):
-        ns_name = "script"+index
+        ns_name = "script"+str(index)
         exec "import "+script+" as "+ns_name
         conversion_scripts[eval(ns_name+".type_and_state")] = ns_name
 
