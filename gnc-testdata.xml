@@ -57,9 +57,43 @@
   <cmdty:fraction>1</cmdty:fraction>
 </gnc:commodity>
 <gnc:account version="2.0.0">
-  <act:name>Root Account</act:name>
-  <act:id type="guid">71607cde73afae2edaf31c2107319999</act:id>
+  <act:name>Root</act:name>
+  <act:id type="guid">00607cde73afae2edaf31c2107319999</act:id>
   <act:type>ROOT</act:type>
+  <act:slots>
+    <slot>
+      <slot:key>dummy</slot:key>
+      <slot:value type="string">dummy</slot:value>
+    </slot>
+  </act:slots>
+</gnc:account>
+<gnc:account version="2.0.0">
+  <act:name>Imbalance-EUR</act:name>
+  <act:id type="guid">00666cde73afae2edaf31c2107319999</act:id>
+  <act:type>ASSET</act:type>
+  <act:commodity>
+    <cmdty:space>ISO4217</cmdty:space>
+    <cmdty:id>EUR</cmdty:id>
+  </act:commodity>
+  <act:commodity-scu>100</act:commodity-scu>
+  <act:code>0950</act:code>
+  <act:slots>
+    <slot>
+      <slot:key>dummy</slot:key>
+      <slot:value type="string">dummy</slot:value>
+    </slot>
+  </act:slots>
+</gnc:account>
+<gnc:account version="2.0.0">
+  <act:name>0920 PayPal</act:name>
+  <act:id type="guid">71607cde73afae2edaf31c2107319999</act:id>
+  <act:type>ASSET</act:type>
+  <act:commodity>
+    <cmdty:space>ISO4217</cmdty:space>
+    <cmdty:id>EUR</cmdty:id>
+  </act:commodity>
+  <act:commodity-scu>100</act:commodity-scu>
+  <act:code>0955</act:code>
   <act:slots>
     <slot>
       <slot:key>dummy</slot:key>
