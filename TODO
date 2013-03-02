@@ -1,4 +1,10 @@
 
 #2 --------------------------------------------------------------------
 
+for concardis.py:convertCurrency:
+
+get historical currency exchange rates. Sources:
+ - ichart.yahoo.com/table.csv?s=EURUSD=X (has 2-3 months gaps)
+ - http://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist-90d.xml (only contains 28 currencies)
+
  --------------------------------------------------------------------
