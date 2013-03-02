@@ -152,6 +152,7 @@ parser.add_argument("-p", "--pretty", action="store_true", default=False, help="
 parser.add_argument("-d", "--delimiter", default='\t', help="Delimiter used in the CSV file  (defaults to tab)")
 parser.add_argument("-q", "--quotechar", default='"', help="Quote character used in the CSV file (defaults to '\"')")
 parser.add_argument("-e", "--encoding", default='iso-8859-1', help="Character encoding used in the CSV file (defaults to iso-8859-1)")
+parser.add_argument("-c", "--currency", default="EUR", help="Currency all transactions are expected to be in (defaults to EUR)")
 parser.add_argument("-s", "--script", action="append", help="Plugin snippets for sorting into different accounts")
 parser.add_argument("ledger_gnucash", help="GnuCash ledger you want to import into")
 parser.add_argument("paypal_csv", help="PayPal CSV export you want to import")
@@ -228,7 +229,7 @@ for index,line in enumerate(paypal_csv):
 
         # merge previous currency conversions, if any
         if old_lines:
-            if len(old_lines) != 2 or old_lines[0][" Currency"] != "EUR" or old_lines[0][" Status"] != "Completed":
+            if len(old_lines) != 2 or old_lines[0][" Currency"] != args.currency or old_lines[0][" Status"] != "Completed":
                 print "Inconsistent currency conversion in line %d of %s, bailing out" % (index, args.paypal_csv)
                 if args.verbosity > 0: print "Context: "+str(line)
                 exit(1)
@@ -243,9 +244,9 @@ for index,line in enumerate(paypal_csv):
             # and assemble comment string from the above
             transaction_comment = "[%s via %s and %s]" % (from_subject, from_transID, to_transID)
 
-        if transaction_currency != "EUR":
+        if transaction_currency != args.currency:
             # in all cases, shunt currency to EUR, if necessary sort out transaction manually afterwards
-            transaction_currency = 'EUR'
+            transaction_currency = args.currency
             # interesting corner case - foreign currency, but zero net amount. Just ignore that.
             if transaction_value != '0,00':
                 print "Wrong currency for main transaction encountered in line %d of %s, check manually!" % (index, args.paypal_csv)
