@@ -147,11 +147,11 @@ parser = argparse.ArgumentParser(description="Import PayPal transactions from CS
                                  "account1_name  = 'PayPal'"
                                  "account2_name  = 'Donations'"
                                  "def importer(funcCreateTrns, 14args): return funcCreateTrns(...)")
-parser.add_argument("-v", "--verbosity", action="count", default=0, help="Increase verbosity by one")
-parser.add_argument("-p", "--pretty", action="store_true", default=False, help="Export xml pretty-printed")
-parser.add_argument("-d", "--delimiter", default='\t', help="Delimiter used in the CSV file")
-parser.add_argument("-q", "--quotechar", default='"', help="Quote character used in the CSV file")
-parser.add_argument("-e", "--encoding", default='iso-8859-1', help="Character encoding used in the CSV file")
+parser.add_argument("-v", "--verbosity", action="count", default=0, help="Increase verbosity by one (defaults to off)")
+parser.add_argument("-p", "--pretty", action="store_true", default=False, help="Export xml pretty-printed (defaults to off)")
+parser.add_argument("-d", "--delimiter", default='\t', help="Delimiter used in the CSV file  (defaults to tab)")
+parser.add_argument("-q", "--quotechar", default='"', help="Quote character used in the CSV file (defaults to '\"')")
+parser.add_argument("-e", "--encoding", default='iso-8859-1', help="Character encoding used in the CSV file (defaults to iso-8859-1)")
 parser.add_argument("-s", "--script", action="append", help="Plugin snippets for sorting into different accounts")
 parser.add_argument("ledger_gnucash", help="GnuCash ledger you want to import into")
 parser.add_argument("paypal_csv", help="PayPal CSV export you want to import")

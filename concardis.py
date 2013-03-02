@@ -228,12 +228,12 @@ parser = argparse.ArgumentParser(description="Import Concardis transactions from
                                  "account1_name     = 'Concardis'"
                                  "account2_name     = 'Donations'"
                                  "def importer(funcCreateTrns, 17args): return funcCreateTrns(...)")
-parser.add_argument("-v", "--verbosity", action="count", default=0, help="Increase verbosity by one")
-parser.add_argument("-p", "--pretty", action="store_true", default=False, help="Export xml pretty-printed")
-parser.add_argument("-d", "--delimiter", default=';', help="Delimiter used in the CSV file")
-parser.add_argument("-q", "--quotechar", default='"', help="Quote character used in the CSV file")
-parser.add_argument("-e", "--encoding", default='utf-8', help="Character encoding used in the CSV file")
-parser.add_argument("-c", "--currency", default="EUR", help="Currency all transactions are converted into")
+parser.add_argument("-v", "--verbosity", action="count", default=0, help="Increase verbosity by one (defaults to off)")
+parser.add_argument("-p", "--pretty", action="store_true", default=False, help="Export xml pretty-printed (defaults to off)")
+parser.add_argument("-d", "--delimiter", default=';', help="Delimiter used in the CSV file (defaults to ';')")
+parser.add_argument("-q", "--quotechar", default='"', help="Quote character used in the CSV file (defaults to '\"')")
+parser.add_argument("-e", "--encoding", default='utf-8', help="Character encoding used in the CSV file (defaults to utf-8)")
+parser.add_argument("-c", "--currency", default="EUR", help="Currency all transactions are converted into (defaults to EUR)")
 parser.add_argument("-s", "--script", action="append", help="Plugin snippets for sorting into different accounts")
 parser.add_argument("ledger_gnucash", help="GnuCash ledger you want to import into")
 parser.add_argument("concardis_csv", help="Concardis CSV export you want to import")
