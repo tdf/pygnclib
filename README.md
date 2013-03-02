@@ -8,7 +8,74 @@ Python support for GnuCash xml files - both reading and
 writing. Pythonic bindings for the xml format, for creating new, and
 modifying existing GnuCash xml files.
 
-Contains a PayPal-CSV to GnuCash importer script.
+Contains a PayPal-CSV to GnuCash importer script, and a Concardis-CSV
+to GnuCash importer script.
+
+Usage
+-----
+
+For the importer scripts:
+
+    usage: paypal.py [-h] [-v] [-p] [-d DELIMITER] [-q QUOTECHAR] [-e ENCODING] [-c CURRENCY] [-s SCRIPT] ledger_gnucash paypal_csv output_gnucash
+    
+    Import PayPal transactions from CSV
+    
+    positional arguments:
+     ledger_gnucash        GnuCash ledger you want to import into
+     paypal_csv            PayPal CSV export you want to import
+     output_gnucash        Output GnuCash ledger file
+    
+    optional arguments:
+     -h, --help            show this help message and exit
+     -v, --verbosity       Increase verbosity by one (defaults to off)
+     -p, --pretty          Export xml pretty-printed (defaults to off)
+     -d DELIMITER, --delimiter DELIMITER
+                           Delimiter used in the CSV file (defaults to tab)
+     -q QUOTECHAR, --quotechar QUOTECHAR
+                           Quote character used in the CSV file (defaults to '"')
+     -e ENCODING, --encoding ENCODING
+                           Character encoding used in the CSV file (defaults to iso-8859-1)
+     -c CURRENCY, --currency CURRENCY
+                           Currency all transactions are expected to be in (defaults to EUR)
+     -s SCRIPT, --script SCRIPT
+                           Plugin snippets for sorting into different accounts
+    
+Extend this script by plugin snippets, that are simple python scripts with the following at the toplevel namespace (example):
+
+    type_and_state = 'DonationsCompleted'
+    account1_name  = 'PayPal'     # this is the assets account that gets the money
+    account2_name  = 'Donations'  # this is the income account
+    
+    def importer(addTransaction,
+                 account1_uuid,
+       			 account2_uuid,
+    			 transaction_type,
+    			 name,
+                 transaction_date,
+    			 transaction_state,
+    			 transaction_currency,
+    			 transaction_real_currency,
+    			 transaction_gross,
+                 transaction_fee,
+    			 transaction_net,
+    			 transaction_value,
+    			 transaction_id,
+    			 transaction_comment):
+    	return addTransaction(transaction_date, account1_uuid, "Memo1 string",
+                              account2_uuid, "Memo2 string",
+                              transaction_currency, transaction_value,
+                              "Transaction description - PayPal:Donations ...")
+
+Of course it is possible to do more fancy things, craft more sensible
+transaction descriptions using more of the input parameters etc etc.
+
+If you want to run the scripts directly out of the git checkout, and
+have placed your importer snippets into ~/.pygnclib, the following
+command lines will do:
+
+    PYTHONPATH=pyxb:out:~/.pygnclib ./paypal.py -v -p -s paypal_donation -s paypal_echeck_donation -s paypal_payment_donation -s paypal_withdraw_funds tdf-charity-2013-01.gnucash paypal-Jan-2013.csv tdf-charity-2013-01_review.gnucash
+
+    PYTHONPATH=pyxb:out:~/.pygnclib ./concardis.py -v -p -s concardis_visa -s concardis_maestro -s concardis_giropay -s concardis_mastercard tdf-charity-2013-01.gnucash Concardis-transactions-Jan-2013.csv tdf-charity-2013-01_review.gnucash
 
 
 History
