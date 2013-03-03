@@ -8,3 +8,27 @@ get historical currency exchange rates. Sources:
  - http://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist-90d.xml (only contains 28 currencies)
 
  --------------------------------------------------------------------
+
+#3 --------------------------------------------------------------------
+
+payments from paypal, if into a foreign currency, have inverted
+currency conversion transaction orders.
+
+i.e.: merchant line, From Euro, To U.S. Dollar
+
+ --------------------------------------------------------------------
+
+#4 --------------------------------------------------------------------
+
+ignore certain kinds of transactions
+ - ideally this can happen from plugin script via return value
+ - examples:
+   * echeck donations cleared transactions (the actual transaction
+     happens separately)
+     pattern "Donations" "Cleared" "USD"
+   * "Request Received" - "Canceled" transactions - for obvious
+     reasons those did not happen
+   * "Request Received" - "Paid" transactions - those get a separate
+     payment transaction
+
+ --------------------------------------------------------------------
