@@ -98,75 +98,12 @@ def lookupAccountUUID(accounts, xml_tree, account_name):
     print "Did not find account with name %s in current book, bailing out!" % account_name
     exit(1)
 
-# lookup account with given name and type in dict (or search in xml tree)
-def lookupAccountTypeUUID(accounts, xml_tree, account_name, account_type):
-    key_value = account_name+account_type
-    if accounts.has_key(key_value):
-        return accounts[key_value]
-    else:
-        for elem in xml_tree:
-            # get account with matching name (partial match is ok) and type
-            if elem.name.find(account_name) != -1 and elem.type == account_type:
-                accounts[key_value] = elem.id.value()
-                return elem.id.value()
-    print "Did not find account with name %s and type %s in current book, bailing out!" % (account_name, account_type)
-    exit(1)
-
 # enter current time as "date entered"
 now = datetime.now().strftime('%Y-%m-%d %H:%M:%S +0100')
 
-# add a gnucash split transaction with the given data - four-way split
-# this time to handle the two involved currencies
-def createMultiCurrencyTransaction(transaction_date, account1_uuid, account1_memo, account2_uuid, account2_memo,
-                                   account_foreignasset_uuid, account_foreigntrading_uuid, transaction_currency,
-                                   transaction_value, transaction_convertedvalue, transaction_description):
-    try:
-        # create a new transaction with four splits - just lovely this
-        # pyxb design - the below is written by _just_ looking at the
-        # rng schema
-        return gnc.transaction(
-            trn.id( uuid.uuid4().hex, type="guid" ),
-            trn.currency( cmdty.space("ISO4217"), cmdty.id(transaction_currency) ),
-            trn.date_posted( ts.date(transaction_date) ),
-            trn.date_entered( ts.date(now) ),
-            trn.description(transaction_description),
-            trn.splits(
-                trn.split(
-                    split.id( uuid.uuid4().hex, type="guid" ),
-                    split.memo( account1_memo ),
-                    split.reconciled_state( "n" ),
-                    split.value( gnucashFromAmount(transaction_convertedvalue) ),
-                    split.quantity( gnucashFromAmount(transaction_convertedvalue) ),
-                    split.account( account1_uuid, type="guid" )),
-                trn.split(
-                    split.id( uuid.uuid4().hex, type="guid" ),
-                    split.memo( "Obtaining foreign currency" ),
-                    split.reconciled_state( "n" ),
-                    split.value( gnucashFromAmount(transaction_value) ),
-                    split.quantity( gnucashFromAmount(transaction_value) ),
-                    split.account( account_foreignasset_uuid, type="guid" )),
-                trn.split(
-                    split.id( uuid.uuid4().hex, type="guid" ),
-                    split.memo( account2_memo ),
-                    split.reconciled_state( "n" ),
-                    split.value( gnucashFromAmount(-transaction_convertedvalue) ),
-                    split.quantity( gnucashFromAmount(-transaction_convertedvalue) ),
-                    split.account( account2_uuid, type="guid" )),
-                trn.split(
-                    split.id( uuid.uuid4().hex, type="guid" ),
-                    split.memo( "Balancing foreign currency purchase" ),
-                    split.reconciled_state( "n" ),
-                    split.value( gnucashFromAmount(-transaction_value) ),
-                    split.quantity( gnucashFromAmount(-transaction_value) ),
-                    split.account( account_foreigntrading_uuid, type="guid" ))),
-            version="2.0.0" )
-    except pyxb.UnrecognizedContentError as e:
-        print '*** ERROR validating input:'
-        print 'Unrecognized element "%s" at %s (details: %s)' % (e.content.expanded_name, e.content.location, e.details())
-
 # add a simple two-sided gnucash split transaction with the given data
-def createSimpleTransaction(transaction_date, account1_uuid, account1_memo, account2_uuid, account2_memo,
-                            transaction_currency, transaction_value, transaction_description):
+def createTransaction(transaction_date, account1_uuid, account1_memo, account2_uuid, account2_memo,
+                      transaction_currency, transaction_value, transaction_description):
     try:
         # create a new transaction with two splits - just lovely this
         # pyxb design - the below is written by _just_ looking at the
@@ -197,26 +134,13 @@ def createSimpleTransaction(transaction_date, account1_uuid, account1_memo, acco
         print '*** ERROR validating input:'
         print 'Unrecognized element "%s" at %s (details: %s)' % (e.content.expanded_name, e.content.location, e.details())
 
-# add a gnucash split transaction with the given data
-def createTransaction(transaction_date, account1_uuid, account1_memo, account2_uuid, account2_memo,
-                      account_foreignasset_uuid, account_foreigntrading_uuid, transaction_currency, transaction_defaultcurrency,
-                      transaction_value, transaction_convertedvalue, transaction_description):
-    if transaction_currency == transaction_defaultcurrency:
-        return createSimpleTransaction(transaction_date, account1_uuid, account1_memo, account2_uuid, account2_memo,
-                                       transaction_currency, transaction_value, transaction_description)
-    else:
-        return createMultiCurrencyTransaction(transaction_date, account1_uuid, account1_memo, account2_uuid, account2_memo,
-                                              account_foreignasset_uuid, account_foreigntrading_uuid, transaction_defaultcurrency,
-                                              transaction_value, transaction_convertedvalue, transaction_description)
-
 def default_importer(createTransaction, account1_uuid, account2_uuid, account_foreignasset_uuid, account_foreigntrading_uuid,
                      transaction_ref, transaction_order_date,
                      transaction_payment_date, transaction_status, transaction_name, transaction_value, transaction_convertedvalue,
                      transaction_currency, transaction_defaultcurrency, transaction_method, transaction_brand, transaction_comment,
                      transaction_description):
     return createTransaction(transaction_payment_date, account1_uuid, "Unknown transaction - %s (%s)" % (transaction_ref, transaction_comment),
-                             account2_uuid, "Unknown Concardis", account_foreignasset_uuid, account_foreigntrading_uuid, transaction_currency,
-                             transaction_defaultcurrency, transaction_value, transaction_convertedvalue,
+                             account2_uuid, "Unknown Concardis", transaction_defaultcurrency, transaction_convertedvalue,
                              "Concardis %s from %s by %s - %s %s" % (transaction_description, transaction_name, transaction_method,
                                                                      transaction_currency, transaction_value))
 
@@ -314,11 +238,9 @@ for index,line in enumerate(concardis_csv):
     # obtain account UUIDs
     account1_uuid = lookupAccountUUID(accounts, doc.book.account, account1_name)
     account2_uuid = lookupAccountUUID(accounts, doc.book.account, account2_name)
-    account_foreignasset_uuid = lookupAccountTypeUUID(accounts, doc.book.account, transaction_currency, "ASSET")
-    account_foreigntrading_uuid = lookupAccountTypeUUID(accounts, doc.book.account, transaction_currency, "TRADING")
 
     # run it
-    new_trn = importer(createTransaction, account1_uuid, account2_uuid, account_foreignasset_uuid, account_foreigntrading_uuid,
+    new_trn = importer(createTransaction, account1_uuid, account2_uuid, 
                        transaction_ref, transaction_order_date, transaction_payment_date, transaction_status,
                        transaction_name, transaction_value,
                        convertCurrency(transaction_value, transaction_currency, args.currency),
