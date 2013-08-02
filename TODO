@@ -25,9 +25,71 @@ ignore certain kinds of transactions
    * echeck donations cleared transactions (the actual transaction
      happens separately)
      pattern "Donations" "Cleared" "USD"
-   * "Request Received" - "Canceled" transactions - for obvious
-     reasons those did not happen
-   * "Request Received" - "Paid" transactions - those get a separate
-     payment transaction
 
  --------------------------------------------------------------------
+
+#6 --------------------------------------------------------------------
+
+validate transaction IDs against existing entries in the file, to
+ - recognize cancellations etc to earlier transactions
+ - avoid double bookings
+ -> postpone for now for performance reasons; the hope is those cases
+    are rare. at any rate, before annual closing, run full year paypal
+	import and compare the gnc2csv outputs
+
+ --------------------------------------------------------------------
+
+#5 --------------------------------------------------------------------
+
+The following transactions with reference have happened so far:
+
+"Cancelled Fee" "Completed"
+ - example:
+    "PayPal"	      "Cancelled Fee"	"Completed"	"USD"	"0,39"	 "0,00"	"0,39"  -> here, ref tx points into nowhere. next TX is what fee gets refunded to
+    "Phil Name"	      "Refund"	        "Completed"	"USD"	"-10,00" "0,39"	"-9,61"	-> here, ref tx points forward to original TX
+
+   optional:
+   "Reversal"	      "Update to Reversal"	"Canceled"	"USD"	"9,61"      "0,00"	"9,61"	-> here, ref tx points forward to temporary hold TX
+   "Phil Name"		  "Temporary Hold"	    "Removed"	"USD"	"-10,00"	"0,39"	"-9,61"	-> here, ref tx points forward to original TX
+
+ - original TX has: "Donations" "Refunded" -> just add reversing TX
+   for it
+ -> collect various info above for given reference txn (simply join
+    Cancelled Fee with next txn, since there is no valid ref), then
+    amend original txn with inverse & the above collected info
+
+"Correction" "Completed"
+ - example:
+    "PayPal"	"Correction"	"Completed"	"USD"	"0,82"	    "0,00"	"0,82"	 -> here, ref tx points forward to original TX
+    "My Name"	"Reversal"	    "Completed"	"USD"	"-10,00"	"0,00"	"-10,00" -> here, ref tx points forward to original TX
+
+ - original TX has: "Donations" "Reversed"
+ -> collect various info above for given reference txn, then
+    amend original txn with inverse & the above collected info
+
+"Currency Conversion" "Completed" -> that is the std case, referencing forward to the original-currency transaction
+
+Other transactions (w/o references):
+
+"Donation Received" "Completed"
+"Donations" "Completed"
+
+"Payment Received" "Completed" -> e.g. Flattr, normal TX
+"Preapproved Payment Sent" "Completed" -> e.g. Facebook, normal TX
+"Withdraw Funds to a Bank Account" "Completed" -> std money transfer
+
+"Donations" "Cleared" -> echeck donation. ignore this one: "Update to eCheck Received" "Cleared"
+
+"Donation Received" "Canceled" -> cancelled transaction, ignore
+"Donations" "Canceled" -> cancelled transaction, ignore.
+"Update to eCheck Received" "Canceled" -> cancelled transaction, ignore.
+
+"Donations" "Pending" -> ignore, nothing happens
+"Donations" "Uncleared" -> ignore, nothing happens
+
+"Update to Bank Transfer Received" "Completed" -> money transfer finally ok, ignore
+
+"Transfer" "Completed" -> transactions between currency accounts,
+possibly consider the EUR side of the transaction, only
+
+

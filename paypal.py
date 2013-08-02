@@ -50,9 +50,6 @@ def dateFromPayPalLine(line):
     payment_date = datetime.strptime(
         line["Date"] + " " + line[" Time"],
         '%d.%m.%Y %H:%M:%S')
-# %z seems fixed only in 3.2
-#            line["Date"] + " " + line[" Time"] + " " + line[" Time Zone"],
-#            '%d.%m.%Y %H:%M:%S GMT%z').utcoffsetset()
     return payment_date.strftime('%Y-%m-%d %H:%M:%S +0100')
 
 # convert float from paypal number string
@@ -128,16 +125,34 @@ def createTransaction(transaction_date, account1_uuid, account1_memo, account2_u
         print '*** ERROR validating input:'
         print 'Unrecognized element "%s" at %s (details: %s)' % (e.content.expanded_name, e.content.location, e.details())
 
-def default_importer(addTransaction, account1_uuid, account2_uuid, transaction_type, name,
-                     transaction_date, transaction_state, transaction_currency, transaction_real_currency, transaction_gross,
-                     transaction_fee, transaction_net, transaction_value, transaction_id, transaction_comment):
-    return addTransaction(transaction_date, account1_uuid, "Unknown transaction",
-                          account2_uuid, "Unknown PayPal", transaction_currency, transaction_value,
-                          "PayPal %s from %s - state: %s - ID: %s - gross: %s %s - fee: %s %s - net %s %s %s" % (transaction_type, name, transaction_state,
-                                                                                                                 transaction_id, transaction_real_currency,
-                                                                                                                 transaction_gross, transaction_real_currency,
-                                                                                                                 transaction_fee, transaction_real_currency,
-                                                                                                                 transaction_net, transaction_comment))
+def default_importer(book, createTransaction, account1_uuid, account2_uuid, **kwargs):
+    currLine = kwargs.pop('line')
+
+    book.append(
+        createTransaction(currLine.transaction_date, account1_uuid, "Unknown transaction",
+                          account2_uuid, "Unknown PayPal", currLine.transaction_currency, currLine.transaction_net,
+                          "PayPal %s from %s - state: %s - ID: %s - gross: %s %s - fee: %s %s - net %s %s" % (currLine.transaction_type, currLine.name, currLine.transaction_state,
+                                                                                                              currLine.transaction_id, currLine.transaction_currency,
+                                                                                                              currLine.transaction_gross, currLine.transaction_currency,
+                                                                                                              currLine.transaction_fee, currLine.transaction_currency,
+                                                                                                              currLine.transaction_net)) )
+
+class InputLine:
+    def __init__(self, line):
+        # remove crap, encode into unicode
+        name = re.sub(r"[\x01-\x1F\x7F]", "", line[" Name"])
+        self.name = name.decode(args.encoding)
+        self.transaction_date = dateFromPayPalLine(line)
+        self.transaction_type = line[" Type"]
+        self.transaction_state = line[" Status"]
+        self.transaction_currency = line[" Currency"]
+        self.transaction_gross = line[" Gross"]
+        self.transaction_fee = line[" Fee"]
+        self.transaction_net = line[" Net"]
+        self.transaction_id  = line[" Transaction ID"]
+        self.reference_txn = line[" Reference Txn ID"]
+    def __str__(self):
+        return "%s %s %s %s %s %s %s %s %s" % (self.transaction_date, self.transaction_type, self.transaction_state, self.transaction_currency, self.transaction_gross, self.transaction_fee, self.transaction_net, self.transaction_id, self.reference_txn)
 
 # main script
 parser = argparse.ArgumentParser(description="Import PayPal transactions from CSV",
@@ -200,80 +215,77 @@ if args.script:
 if args.verbosity > 0: print "Importing CSV transactions"
 
 accounts = {}
-old_lines = []
+fwd_refs = {}
+prev_line = None
+
 for index,line in enumerate(paypal_csv):
-    transaction_type = line[" Type"]
+    currLine = InputLine(line)
 
-    # special-handling for currency conversion - we want all
-    # transactions in EUR, thus we merge all three paypal transaction
-    # (conversion from <currency>, conversion to EUR, original
-    # transaction) into one
-    if transaction_type == "Currency Conversion":
-        old_lines.append( line )
-    else:
-        # remove crap, encode into unicode
-        name = re.sub(r"[\x01-\x1F\x7F]", "", line[" Name"])
-        name = name.decode(args.encoding)
-        transaction_date = dateFromPayPalLine(line)
-        transaction_state = line[" Status"]
-        transaction_currency = line[" Currency"]
-        transaction_real_currency = transaction_currency
-        transaction_gross = line[" Gross"]
-        transaction_fee = line[" Fee"]
-        transaction_net = line[" Net"]
-        transaction_id  = line[" Transaction ID"]
-        transaction_value = transaction_net
+    # stick unmatched transactions into Imbalance account, in case we
+    # don't find a handler below
+    account1_name = "PayPal"
+    account2_name = "Imbalance"
+    importer = default_importer
 
-        # to be extended for e.g. currency conversions
-        transaction_comment = ""
-
-        # merge previous currency conversions, if any
-        if old_lines:
-            if len(old_lines) != 2 or old_lines[0][" Currency"] != args.currency or old_lines[0][" Status"] != "Completed":
-                print "Inconsistent currency conversion in line %d of %s, bailing out" % (index, args.paypal_csv)
+    # find matching conversion script, if any
+    if conversion_scripts.has_key(currLine.transaction_type+currLine.transaction_state):
+        if eval(conversion_scripts[currLine.transaction_type+currLine.transaction_state]+".merge_nextline"):
+            # store current line for _exactly_  one additional transaction
+            if prev_line != None:
+                print "Merge_nextline requested, but already pending line in line %d of %s, bailing out" % (index, args.paypal_csv)
                 if args.verbosity > 0: print "Context: "+str(line)
                 exit(1)
-            from_subject  = old_lines[0][" Name"]
-            from_transID  = old_lines[0][" Transaction ID"]
-            to_transID    = old_lines[1][" Transaction ID"]
-            # clobber currency and value, the real ones are from old_lines[0]
-            transaction_currency = old_lines[0][" Currency"]
-            transaction_value = old_lines[0][" Net"]
-            # and clear old lines for next triplet
-            old_lines = []
-            # and assemble comment string from the above
-            transaction_comment = "[%s via %s and %s]" % (from_subject, from_transID, to_transID)
+            prev_line = currLine
+            continue # no further processing
+        elif eval(conversion_scripts[currLine.transaction_type+currLine.transaction_state]+".store_fwdref"):
+            if not fwd_refs.has_key(currLine.reference_txn):
+                fwd_refs[currLine.reference_txn] = []
 
-        if transaction_currency != args.currency:
-            # in all cases, shunt currency to EUR, if necessary sort out transaction manually afterwards
-            transaction_currency = args.currency
-            # interesting corner case - foreign currency, but zero net amount. Just ignore that.
-            if transaction_value != '0,00':
-                print "Wrong currency for main transaction encountered in line %d of %s, check manually!" % (index, args.paypal_csv)
-                if args.verbosity > 0: print "Context: "+str(line)
+            # are we ourselves referenced? merge then. this joins up
+            # chains of Txn references into one list, keeping only the
+            # reference to the root transaction in the hash.
+            if fwd_refs.has_key(currLine.transaction_id):
+                fwd_refs[currLine.reference_txn].extend(fwd_refs[currLine.transaction_id])
+                del fwd_refs[currLine.transaction_id]
 
-        # stick unmatched transactions into Imbalance account
-        account1_name = "PayPal"
-        account2_name = "Imbalance"
-        importer = default_importer
+            # gobble up prev line, if any
+            if prev_line != None:
+                fwd_refs[currLine.reference_txn].append(prev_line)
+                prev_line = None
 
-        # find matching conversion script
-        if conversion_scripts.has_key(transaction_type+transaction_state):
-            account1_name = eval(conversion_scripts[transaction_type+transaction_state]+".account1_name")
-            account2_name = eval(conversion_scripts[transaction_type+transaction_state]+".account2_name")
-            importer = eval(conversion_scripts[transaction_type+transaction_state]+".importer")
+            fwd_refs[currLine.reference_txn].append(currLine)
+            continue # no further processing
+        elif eval(conversion_scripts[currLine.transaction_type+currLine.transaction_state]+".ignore"):
+            if args.verbosity > 0: print "Ignoring transaction in line %d of %s" % (index, args.paypal_csv)
+            continue # no further processing
+        else:
+            # now actually import transaction at hand
+            importer = eval(conversion_scripts[currLine.transaction_type+currLine.transaction_state]+".importer")
+            # only now grab account names (possibly script requested skip above)
+            account1_name = eval(conversion_scripts[currLine.transaction_type+currLine.transaction_state]+".account1_name")
+            account2_name = eval(conversion_scripts[currLine.transaction_type+currLine.transaction_state]+".account2_name")
 
-        # obtain account UUIDs
-        account1_uuid = lookupAccountUUID(accounts, doc.book.account, account1_name)
-        account2_uuid = lookupAccountUUID(accounts, doc.book.account, account2_name)
+    # obtain account UUIDs
+    account1_uuid = lookupAccountUUID(accounts, doc.book.account, account1_name)
+    account2_uuid = lookupAccountUUID(accounts, doc.book.account, account2_name)
 
-        # run it
-        new_trn = importer(createTransaction, account1_uuid, account2_uuid, transaction_type, name, transaction_date,
-                           transaction_state, transaction_currency, transaction_real_currency, transaction_gross, transaction_fee,
-                           transaction_net, transaction_value, transaction_id, transaction_comment)
+    # run it
+    if prev_line != None:
+        if fwd_refs.has_key(currLine.transaction_id):
+            print "Previous line merge done, but conflicting reference Txn found in line %d of %s, bailing out" % (index, args.paypal_csv)
+            if args.verbosity > 0: print "Context: "+str(line)
+            exit(1)
 
-        # add it to ledger
-        doc.book.append(new_trn)
+        # extra arg for previous line
+        importer(doc.book, createTransaction, account1_uuid, account2_uuid, line=currLine, previous=prev_line, args=args)
+        prev_line = None
+    elif fwd_refs.has_key(currLine.transaction_id):
+        # extra arg for list of reference txn
+        importer(doc.book, createTransaction, account1_uuid, account2_uuid, line=currLine, previous=fwd_refs[currLine.transaction_id], args=args)
+        del fwd_refs[currLine.transaction_id]
+    else:
+        # no extra args, just this one txn
+        importer(doc.book, createTransaction, account1_uuid, account2_uuid, line=currLine, args=args)
 
 if args.verbosity > 0: print "Writing resulting ledger"
 
