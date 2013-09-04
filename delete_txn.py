@@ -115,7 +115,7 @@ if args.date:
             dates.append( lambda x: x <= upper )
         elif dt_range[1] == '':
             lower=datetime.strptime(dt_range[0], '%Y-%m-%d')
-            dates.append( lambda x: upper <= x)
+            dates.append( lambda x: lower <= x)
         else:
             lower=datetime.strptime(dt_range[0], '%Y-%m-%d')
             upper=datetime.strptime(dt_range[1], '%Y-%m-%d')
@@ -127,7 +127,10 @@ if args.memo:
     for exp in args.memo:
         memos.append( re.compile(exp) )
 
-for index,txn in enumerate(doc.book.transaction):
+# go through all Txn (backwards, to make inplace deletion not screw
+# up)
+for index in range(len(doc.book.transaction) - 1, -1, -1):
+    txn = doc.book.transaction[index]
     match = False
     if len(accounts):
         for split in txn.splits.split:
