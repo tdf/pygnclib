@@ -277,15 +277,15 @@ for index,line in enumerate(paypal_csv):
             exit(1)
 
         # extra arg for previous line
-        importer(doc.book, createTransaction, account1_uuid, account2_uuid, line=currLine, previous=prev_line, args=args)
+        importer(doc.book, createTransaction, account1_uuid, account2_uuid, line=currLine, linenum=index, previous=prev_line, args=args)
         prev_line = None
     elif fwd_refs.has_key(currLine.transaction_id):
         # extra arg for list of reference txn
-        importer(doc.book, createTransaction, account1_uuid, account2_uuid, line=currLine, previous=fwd_refs[currLine.transaction_id], args=args)
+        importer(doc.book, createTransaction, account1_uuid, account2_uuid, line=currLine, linenum=index, previous=fwd_refs[currLine.transaction_id], args=args)
         del fwd_refs[currLine.transaction_id]
     else:
         # no extra args, just this one txn
-        importer(doc.book, createTransaction, account1_uuid, account2_uuid, line=currLine, args=args)
+        importer(doc.book, createTransaction, account1_uuid, account2_uuid, line=currLine, linenum=index, args=args)
 
 if args.verbosity > 0: print "Writing resulting ledger"
 
