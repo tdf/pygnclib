@@ -1,33 +1,4 @@
 
-#2 --------------------------------------------------------------------
-
-for concardis.py:convertCurrency:
-
-get more historical currency exchange rates on top of eurofxref. Source:
- - ichart.yahoo.com/table.csv?s=EURUSD=X (has 2-3 months gaps)
-
- --------------------------------------------------------------------
-
-#3 --------------------------------------------------------------------
-
-payments from paypal, if into a foreign currency, have inverted
-currency conversion transaction orders.
-
-i.e.: merchant line, From Euro, To U.S. Dollar
-
- --------------------------------------------------------------------
-
-#4 --------------------------------------------------------------------
-
-ignore certain kinds of transactions
- - ideally this can happen from plugin script via return value
- - examples:
-   * echeck donations cleared transactions (the actual transaction
-     happens separately)
-     pattern "Donations" "Cleared" "USD"
-
- --------------------------------------------------------------------
-
 #6 --------------------------------------------------------------------
 
 validate transaction IDs against existing entries in the file, to
