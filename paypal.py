@@ -216,6 +216,7 @@ if args.verbosity > 0: print "Importing CSV transactions"
 
 accounts = {}
 fwd_refs = {}
+back_refs = {}
 prev_line = None
 
 for index,line in enumerate(paypal_csv):
@@ -226,6 +227,9 @@ for index,line in enumerate(paypal_csv):
     account1_name = "PayPal"
     account2_name = "Imbalance"
     importer = default_importer
+
+    # store txn id for potential back references
+    back_refs[currLine.transaction_id] = currLine
 
     # find matching conversion script, if any
     if conversion_scripts.has_key(currLine.transaction_type+currLine.transaction_state):
@@ -238,6 +242,20 @@ for index,line in enumerate(paypal_csv):
             prev_line = currLine
             continue # no further processing
         elif eval(conversion_scripts[currLine.transaction_type+currLine.transaction_state]+".store_fwdref"):
+            # any backreferences to merge with?
+            if back_refs.has_key(currLine.reference_txn):
+                if back_refs[currLine.reference_txn].reference_txn == "":
+                    print "Back reference without own forward reference, cannot merge after-the-fact line %d of %s, bailing out" % (index, args.paypal_csv)
+                    if args.verbosity > 0: print "Context: "+str(line)
+                    exit(1)
+                # yup. gobble up prev line, if any
+                if prev_line != None:
+                    fwd_refs[back_refs[currLine.reference_txn].reference_txn].append(prev_line)
+                    prev_line = None
+                # and now append ourself to that one
+                fwd_refs[back_refs[currLine.reference_txn].reference_txn].append(currLine)
+                continue # no further processing
+
             if not fwd_refs.has_key(currLine.reference_txn):
                 fwd_refs[currLine.reference_txn] = []
 
@@ -286,6 +304,17 @@ for index,line in enumerate(paypal_csv):
     else:
         # no extra args, just this one txn
         importer(doc.book, createTransaction, account1_uuid, account2_uuid, line=currLine, linenum=index, args=args)
+
+# stick unmatched TxnReferences into imbalance account
+account1_uuid = lookupAccountUUID(accounts, doc.book.account, 'PayPal')
+account2_uuid = lookupAccountUUID(accounts, doc.book.account, 'Imbalance')
+for entry in fwd_refs.itervalues():
+    for currLine in entry:
+        default_importer(doc.book, createTransaction, account1_uuid, account2_uuid, line=currLine, linenum=-1, args=args)
+
+# stick unused merge line into imbalance account
+if prev_line != None:
+    default_importer(doc.book, createTransaction, account1_uuid, account2_uuid, line=prev_line, linenum=-1, args=args)
 
 if args.verbosity > 0: print "Writing resulting ledger"
 

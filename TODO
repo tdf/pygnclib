@@ -67,7 +67,16 @@ The following transactions with reference have happened so far:
  -> collect various info above for given reference txn, then
     amend original txn with inverse & the above collected info
 
+"Temporary Hold" "Placed
+ - example:
+   "WordPress.com"	"Preapproved Payment Sent"	"Completed"	"USD"	"-13,00"	"0,00"	"-13,00"	 -> here, ref tx points forward to original TX
+   "PayPal"	"Temporary Hold"	"Placed"	"EUR"	"-10,07"	"0,00"   "-10,07"	 -> here, ref tx points forward to original TX
+   "WordPress.com"	"Authorization"	"Completed"	"USD"	"-13,00"   "0,00"	"-13,00" -> the actual transaction
+
 "Currency Conversion" "Completed" -> that is the std case, referencing forward to the original-currency transaction
+
+Note that for _spending_ money, the currency conversion comes _after_
+the actual transaction, Txn ref referencing backwards!
 
 Other transactions (w/o references):
 
