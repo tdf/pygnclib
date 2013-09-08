@@ -106,17 +106,28 @@ class PayPalConverter:
         self.document = book
         self.accounts = book.account
         self.default_currency = args.currency
-        self.converter = CurrencyConverter(verbosity=args.verbosity)
+        self.currency_converter = CurrencyConverter(verbosity=args.verbosity)
 
-    # lookup account with given name in dict (or search in xml tree)
-    def lookupAccountUUID(self, account_name):
-        if self.acc_lookup.has_key(account_name):
-            return self.acc_lookup[account_name]
+    # wrap the converter here, to be able to convert value to float if
+    # necessary
+    def currencyConvert(self, value, currency, txn_date):
+        if isinstance(value, str):
+            value = amountFromPayPal(value)
+        return self.currency_converter.convert(value, currency, args.currency, txn_date)
+
+    # lookup account with given name (and optionally type) in dict (or
+    # search in xml tree)
+    def lookupAccountUUID(self, account_name, **kwargs):
+        acc_type = kwargs.pop('type', '')
+        lookup_key = acc_type+account_name
+
+        if self.acc_lookup.has_key(lookup_key):
+            return self.acc_lookup[lookup_key]
         else:
             for elem in self.accounts:
-                # get account with matching name (partial match is ok)
-                if elem.name.find(account_name) != -1:
-                    self.acc_lookup[account_name] = elem.id.value()
+                # get account with matching name and type (partial match is ok)
+                if elem.name.find(account_name) != -1 and elem.type.find(acc_type) != -1:
+                    self.acc_lookup[lookup_key] = elem.id.value()
                     return elem.id.value()
         print "Did not find account with name %s in current book, bailing out!" % account_name
         exit(1)
@@ -126,24 +137,15 @@ class PayPalConverter:
                        account1_name, account1_memo,
                        account2_name, account2_memo,
                        transaction_currency, transaction_value, transaction_description):
-        transaction_amount = amountFromPayPal(transaction_value)
+        if isinstance(transaction_value, str):
+            transaction_value = amountFromPayPal(transaction_value)
 
-        # for foreign currencies, add a 4-way split transaction,
-        # transferring the amount to the appropriate currency trading
-        # account
-        if self.default_currency != transaction_currency and transaction_value != '0,00':
-            self.addMultiCurrencyTransaction(transaction_date,
-                                             transaction_currency, transaction_currency,
-                                             self.default_currency, self.default_currency,
-                                             transaction_amount, 
-                                             self.converter.convert(transaction_amount,
-                                                                    transaction_currency,
-                                                                    self.default_currency,
-                                                                    transaction_date.date()),
-                                             account1_name, account1_memo,
-                                             account2_name, account2_memo,
-                                             transaction_description)
-            return
+        # don't accept non-default currencies here. users need to use
+        # addMultiCurrencyTransaction for that
+        if self.default_currency != transaction_currency and transaction_value != 0:
+            print "Wrong currency for main transaction encountered, bailing out!"
+            if args.verbosity > 0: print "Context: "+str(currLine)
+            exit(1)
 
         try:
             account1_uuid = self.lookupAccountUUID(account1_name)
@@ -164,15 +166,15 @@ class PayPalConverter:
                             split.id( uuid.uuid4().hex, type="guid" ),
                             split.memo( account1_memo ),
                             split.reconciled_state( "n" ),
-                            split.value( gnucashFromAmount(transaction_amount) ),
-                            split.quantity( gnucashFromAmount(transaction_amount) ),
+                            split.value( gnucashFromAmount(transaction_value) ),
+                            split.quantity( gnucashFromAmount(transaction_value) ),
                             split.account( account1_uuid, type="guid" )),
                         trn.split(
                             split.id( uuid.uuid4().hex, type="guid" ),
                             split.memo( account2_memo ),
                             split.reconciled_state( "n" ),
-                            split.value( gnucashFromAmount(-transaction_amount) ),
-                            split.quantity( gnucashFromAmount(-transaction_amount) ),
+                            split.value( gnucashFromAmount(-transaction_value) ),
+                            split.quantity( gnucashFromAmount(-transaction_value) ),
                             split.account( account2_uuid, type="guid" ))),
                     version="2.0.0" ))
         except pyxb.UnrecognizedContentError as e:
@@ -184,16 +186,22 @@ class PayPalConverter:
     def addMultiCurrencyTransaction(self, transaction_date,
                                     transaction_currency1, currency1_account_name,
                                     transaction_currency2, currency2_account_name,
-                                    transaction_amount_currency1,
-                                    transaction_amount_currency2,
+                                    transaction_value_currency1,
+                                    transaction_value_currency2,
                                     account1_name, account1_memo,
                                     account2_name, account2_memo,
                                     transaction_description):
         try:
             account1_uuid = self.lookupAccountUUID(account1_name)
             account2_uuid = self.lookupAccountUUID(account2_name)
-            currency1_account_uuid = self.lookupAccountUUID(currency1_account_name)
-            currency2_account_uuid = self.lookupAccountUUID(currency2_account_name)
+            currency1_account_uuid = self.lookupAccountUUID(currency1_account_name, type='TRADING')
+            currency2_account_uuid = self.lookupAccountUUID(currency2_account_name, type='TRADING')
+
+            # if necessary convert values to float first
+            if isinstance(transaction_value_currency1, str):
+                transaction_value_currency1 = amountFromPayPal(transaction_value_currency1)
+            if isinstance(transaction_value_currency2, str):
+                transaction_value_currency2 = amountFromPayPal(transaction_value_currency2)
 
             # create a new transaction with four splits - just lovely this
             # pyxb design - the below is written by _just_ looking at the
@@ -210,29 +218,29 @@ class PayPalConverter:
                             split.id( uuid.uuid4().hex, type="guid" ),
                             split.memo( account1_memo ),
                             split.reconciled_state( "n" ),
-                            split.value( gnucashFromAmount(transaction_amount_currency1) ),
-                            split.quantity( gnucashFromAmount(transaction_amount_currency1) ),
+                            split.value( gnucashFromAmount(transaction_value_currency1) ),
+                            split.quantity( gnucashFromAmount(transaction_value_currency1) ),
                             split.account( account1_uuid, type="guid" )),
                         trn.split(
                             split.id( uuid.uuid4().hex, type="guid" ),
                             split.memo( account1_memo ),
                             split.reconciled_state( "n" ),
-                            split.value( gnucashFromAmount(-transaction_amount_currency1) ),
-                            split.quantity( gnucashFromAmount(-transaction_amount_currency1) ),
+                            split.value( gnucashFromAmount(-transaction_value_currency1) ),
+                            split.quantity( gnucashFromAmount(-transaction_value_currency1) ),
                             split.account( currency1_account_uuid, type="guid" )),
                         trn.split(
                             split.id( uuid.uuid4().hex, type="guid" ),
                             split.memo( account2_memo ),
                             split.reconciled_state( "n" ),
-                            split.value( gnucashFromAmount(-transaction_amount_currency2) ),
-                            split.quantity( gnucashFromAmount(-transaction_amount_currency2) ),
+                            split.value( gnucashFromAmount(-transaction_value_currency2) ),
+                            split.quantity( gnucashFromAmount(-transaction_value_currency2) ),
                             split.account( account2_uuid, type="guid" )),
                         trn.split(
                             split.id( uuid.uuid4().hex, type="guid" ),
                             split.memo( account2_memo ),
                             split.reconciled_state( "n" ),
-                            split.value( gnucashFromAmount(transaction_amount_currency2) ),
-                            split.quantity( gnucashFromAmount(transaction_amount_currency2) ),
+                            split.value( gnucashFromAmount(transaction_value_currency2) ),
+                            split.quantity( gnucashFromAmount(transaction_value_currency2) ),
                             split.account( currency2_account_uuid, type="guid" ))),
                     version="2.0.0" ))
         except pyxb.UnrecognizedContentError as e:

@@ -1,5 +1,13 @@
+#1 --------------------------------------------------------------------
 
-#6 --------------------------------------------------------------------
+ get more historic currency exchange rates, e.g.:
+
+ http://www.oanda.com/currency/historical-rates-classic?date_fmt=us&date=05/16/13&date1=05/03/13&exch=EUR&expr=USD&margin_fixed=0&format=CSV&redirected=1
+ http://www.xe.com/currencytables/?from=EUR&date=2013-05-16
+
+ --------------------------------------------------------------------
+
+#2 --------------------------------------------------------------------
 
 validate transaction IDs against existing entries in the file, to
  - recognize cancellations etc to earlier transactions
@@ -10,7 +18,7 @@ validate transaction IDs against existing entries in the file, to
 
  --------------------------------------------------------------------
 
-#5 --------------------------------------------------------------------
+#3 --------------------------------------------------------------------
 
 The following transactions with reference have happened so far:
 
