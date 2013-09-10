@@ -379,7 +379,8 @@ for index,line in enumerate(paypal_csv):
             fwd_refs[currLine.reference_txn].append(currLine)
             continue # no further processing
         elif eval(conversion_scripts[currLine.transaction_type+currLine.transaction_state]+".ignore"):
-            if args.verbosity > 0: print "Ignoring transaction in line %d of %s" % (index, args.paypal_csv)
+            print "Ignoring transaction in line %d of %s" % (index, args.paypal_csv)
+            if args.verbosity > 0: print "Context: "+str(currLine)
             continue # no further processing
         else:
             # now actually import transaction at hand
