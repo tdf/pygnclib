@@ -133,116 +133,66 @@ class PayPalConverter:
         exit(1)
 
     # add a gnucash split transaction with the given data
-    def addTransaction(self, transaction_date,
-                       account1_name, account1_memo,
-                       account2_name, account2_memo,
-                       transaction_currency, transaction_value, transaction_description):
-        if isinstance(transaction_value, str):
-            transaction_value = amountFromPayPal(transaction_value)
+    def addTransaction(self, **kwargs):
+        transaction_date = kwargs.pop('date')
+        transaction_currency = kwargs.pop('currency')
+        transaction_description = kwargs.pop('description')
+        txn = kwargs.pop('txn')
 
-        # don't accept non-default currencies here. users need to use
-        # addMultiCurrencyTransaction for that
-        if self.default_currency != transaction_currency and transaction_value != 0:
+        # don't accept non-default currencies here, unless it at least
+        # appears to be a multi-currency split transaction
+        if self.default_currency != transaction_currency and (
+            len(txn[0]) > 1 or len(txn[1]) > 1):
             print "Wrong currency for main transaction encountered, bailing out!"
             if args.verbosity > 0: print "Context: "+str(currLine)
             exit(1)
 
         try:
-            account1_uuid = self.lookupAccountUUID(account1_name)
-            account2_uuid = self.lookupAccountUUID(account2_name)
+            transaction=gnc.transaction(
+                trn.id( uuid.uuid4().hex, type="guid" ),
+                trn.currency( cmdty.space("ISO4217"), cmdty.id(transaction_currency) ),
+                trn.date_posted( ts.date(getGNCDateStr(transaction_date)) ),
+                trn.date_entered( ts.date(self.now) ),
+                trn.description(transaction_description),
+                trn.splits(),
+                version="2.0.0")
 
-            # create a new transaction with two splits - just lovely this
-            # pyxb design - the below is written by _just_ looking at the
-            # rng schema
-            self.document.append(
-                gnc.transaction(
-                    trn.id( uuid.uuid4().hex, type="guid" ),
-                    trn.currency( cmdty.space("ISO4217"), cmdty.id(transaction_currency) ),
-                    trn.date_posted( ts.date(getGNCDateStr(transaction_date)) ),
-                    trn.date_entered( ts.date(self.now) ),
-                    trn.description(transaction_description),
-                    trn.splits(
-                        trn.split(
-                            split.id( uuid.uuid4().hex, type="guid" ),
-                            split.memo( account1_memo ),
-                            split.reconciled_state( "n" ),
-                            split.value( gnucashFromAmount(transaction_value) ),
-                            split.quantity( gnucashFromAmount(transaction_value) ),
-                            split.account( account1_uuid, type="guid" )),
-                        trn.split(
-                            split.id( uuid.uuid4().hex, type="guid" ),
-                            split.memo( account2_memo ),
-                            split.reconciled_state( "n" ),
-                            split.value( gnucashFromAmount(-transaction_value) ),
-                            split.quantity( gnucashFromAmount(-transaction_value) ),
-                            split.account( account2_uuid, type="guid" ))),
-                    version="2.0.0" ))
-        except pyxb.UnrecognizedContentError as e:
-            print '*** ERROR validating input:'
-            print 'Unrecognized element "%s" at %s (details: %s)' % (e.content.expanded_name,
-                                                                     e.content.location, e.details())
+            for split in txn(0):
+                split_account = split[0]
+                split_memo    = split[1]
+                split_value   = split[2]
 
-    # add a gnucash multi-currency split transaction with the given data
-    def addMultiCurrencyTransaction(self, transaction_date,
-                                    transaction_currency1, currency1_account_name,
-                                    transaction_currency2, currency2_account_name,
-                                    transaction_value_currency1,
-                                    transaction_value_currency2,
-                                    account1_name, account1_memo,
-                                    account2_name, account2_memo,
-                                    transaction_description):
-        try:
-            account1_uuid = self.lookupAccountUUID(account1_name)
-            account2_uuid = self.lookupAccountUUID(account2_name)
-            currency1_account_uuid = self.lookupAccountUUID(currency1_account_name, type='TRADING')
-            currency2_account_uuid = self.lookupAccountUUID(currency2_account_name, type='TRADING')
+                if isinstance(split_value, str):
+                    split_value = amountFromPayPal(split_value)
+                split_uuid = self.lookupAccountUUID(split_account)
 
-            # if necessary convert values to float first
-            if isinstance(transaction_value_currency1, str):
-                transaction_value_currency1 = amountFromPayPal(transaction_value_currency1)
-            if isinstance(transaction_value_currency2, str):
-                transaction_value_currency2 = amountFromPayPal(transaction_value_currency2)
+                transaction.splits.append(
+                    trn.split(
+                        split.id( uuid.uuid4().hex, type="guid" ),
+                        split.memo( split_memo ),
+                        split.reconciled_state( "n" ),
+                        split.value( gnucashFromAmount(split_value) ),
+                        split.quantity( gnucashFromAmount(split_value) ),
+                        split.account( split_uuid, type="guid" )) )
 
-            # create a new transaction with four splits - just lovely this
-            # pyxb design - the below is written by _just_ looking at the
-            # rng schema
-            self.document.append(
-                gnc.transaction(
-                    trn.id( uuid.uuid4().hex, type="guid" ),
-                    trn.currency( cmdty.space("ISO4217"), cmdty.id(transaction_currency1) ),
-                    trn.date_posted( ts.date(getGNCDateStr(transaction_date)) ),
-                    trn.date_entered( ts.date(self.now) ),
-                    trn.description(transaction_description),
-                    trn.splits(
-                        trn.split(
-                            split.id( uuid.uuid4().hex, type="guid" ),
-                            split.memo( account1_memo ),
-                            split.reconciled_state( "n" ),
-                            split.value( gnucashFromAmount(transaction_value_currency1) ),
-                            split.quantity( gnucashFromAmount(transaction_value_currency1) ),
-                            split.account( account1_uuid, type="guid" )),
-                        trn.split(
-                            split.id( uuid.uuid4().hex, type="guid" ),
-                            split.memo( account1_memo ),
-                            split.reconciled_state( "n" ),
-                            split.value( gnucashFromAmount(-transaction_value_currency1) ),
-                            split.quantity( gnucashFromAmount(-transaction_value_currency1) ),
-                            split.account( currency1_account_uuid, type="guid" )),
-                        trn.split(
-                            split.id( uuid.uuid4().hex, type="guid" ),
-                            split.memo( account2_memo ),
-                            split.reconciled_state( "n" ),
-                            split.value( gnucashFromAmount(-transaction_value_currency2) ),
-                            split.quantity( gnucashFromAmount(-transaction_value_currency2) ),
-                            split.account( account2_uuid, type="guid" )),
-                        trn.split(
-                            split.id( uuid.uuid4().hex, type="guid" ),
-                            split.memo( account2_memo ),
-                            split.reconciled_state( "n" ),
-                            split.value( gnucashFromAmount(transaction_value_currency2) ),
-                            split.quantity( gnucashFromAmount(transaction_value_currency2) ),
-                            split.account( currency2_account_uuid, type="guid" ))),
-                    version="2.0.0" ))
+            for split in txn(1):
+                split_account = split[0]
+                split_memo    = split[1]
+                split_value   = split[2]
+
+                if isinstance(split_value, str):
+                    split_value = amountFromPayPal(split_value)
+                split_uuid = self.lookupAccountUUID(split_account)
+
+                transaction.splits.append(
+                    trn.split(
+                        split.id( uuid.uuid4().hex, type="guid" ),
+                        split.memo( split_memo ),
+                        split.reconciled_state( "n" ),
+                        split.value( gnucashFromAmount(-split_value) ),
+                        split.quantity( gnucashFromAmount(-split_value) ),
+                        split.account( split_uuid, type="guid" )) )
+
         except pyxb.UnrecognizedContentError as e:
             print '*** ERROR validating input:'
             print 'Unrecognized element "%s" at %s (details: %s)' % (e.content.expanded_name,
@@ -251,16 +201,18 @@ class PayPalConverter:
 def default_importer(converter, **kwargs):
     currLine = kwargs.pop('line')
 
-    converter.addTransaction(currLine.transaction_date,
-                             'PayPal', "Unknown transaction",
-                             'Imbalance', "Unknown PayPal",
-                             currLine.transaction_currency, currLine.transaction_net,
-                             "PayPal %s from %s - state: %s - ID: %s - gross: %s %s - fee: %s %s - net %s %s" % (
+    converter.addTransaction(
+        date=currLine.transaction_date,
+        currency=currLine.transaction_currency,
+        description="PayPal %s from %s - state: %s - ID: %s - gross: %s %s - fee: %s %s - net %s %s" % (
             currLine.transaction_type, currLine.name, currLine.transaction_state,
             currLine.transaction_id, currLine.transaction_currency,
             currLine.transaction_gross, currLine.transaction_currency,
             currLine.transaction_fee, currLine.transaction_currency,
-            currLine.transaction_net))
+            currLine.transaction_net),
+        ,
+        txn=([('PayPal',    "Unknown transaction", currLine.transaction_net)],
+             [('Imbalance', "Unknown PayPal",      currLine.transaction_net)]) )
 
 
 # main script
