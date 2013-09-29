@@ -143,9 +143,16 @@ class PayPalConverter:
         # appears to be a multi-currency split transaction
         if (self.default_currency != transaction_currency and
             len(txn[0]) < 2 and len(txn[1]) < 2):
-            print "Wrong currency for main transaction encountered, bailing out!"
-            if args.verbosity > 0: print "Context: "+str(currLine)
-            exit(1)
+            # well - actually _do_ accept it if net value is zero,
+            # since it obviously does not affect the balance
+            if ((len(txn[0]) > 0 and txn[0][0][2] == '0,00') or
+                (len(txn[1]) > 0 and txn[1][0][2] == '0,00')):
+                # fake main transaction currency. amount is zero anyway
+                transaction_currency = self.default_currency
+            else:
+                print "Wrong currency for main transaction encountered, bailing out!"
+                if args.verbosity > 0: print "Context: "+str(currLine)
+                exit(1)
 
         try:
             transaction=gnc.transaction(
