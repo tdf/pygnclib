@@ -12,9 +12,11 @@
 validate transaction IDs against existing entries in the file, to
  - recognize cancellations etc to earlier transactions
  - avoid double bookings
- -> postpone for now for performance reasons; the hope is those cases
+ -> postponed for now for performance reasons; the hope is those cases
     are rare. at any rate, before annual closing, run full year paypal
 	import and compare the gnc2csv outputs
+ -> there is also now delete_txn.py to e.g. kill all PayPal
+    transactions, or a certain range, and import anew
 
  --------------------------------------------------------------------
 
