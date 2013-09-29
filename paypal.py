@@ -141,8 +141,8 @@ class PayPalConverter:
 
         # don't accept non-default currencies here, unless it at least
         # appears to be a multi-currency split transaction
-        if self.default_currency != transaction_currency and (
-            len(txn[0]) > 1 or len(txn[1]) > 1):
+        if (self.default_currency != transaction_currency and
+            len(txn[0]) < 2 and len(txn[1]) < 2):
             print "Wrong currency for main transaction encountered, bailing out!"
             if args.verbosity > 0: print "Context: "+str(currLine)
             exit(1)
@@ -157,15 +157,15 @@ class PayPalConverter:
                 trn.splits(),
                 version="2.0.0")
 
-            for split in txn(0):
-                split_account = split[0]
-                split_memo    = split[1]
-                split_value   = split[2]
+            for curr_split in txn[0]:
+                split_account = curr_split[0]
+                split_memo    = curr_split[1]
+                split_value   = curr_split[2]
 
                 if isinstance(split_value, str):
                     split_value = self.amountFromPayPal(split_value)
-                if len(split) > 3:
-                    split_uuid = self.lookupAccountUUID(split_account, type=split[3])
+                if len(curr_split) > 3:
+                    split_uuid = self.lookupAccountUUID(split_account, type=curr_split[3])
                 else:
                     split_uuid = self.lookupAccountUUID(split_account)
 
@@ -178,15 +178,15 @@ class PayPalConverter:
                         split.quantity( gnucashFromAmount(split_value) ),
                         split.account( split_uuid, type="guid" )) )
 
-            for split in txn(1):
-                split_account = split[0]
-                split_memo    = split[1]
-                split_value   = split[2]
+            for curr_split in txn[1]:
+                split_account = curr_split[0]
+                split_memo    = curr_split[1]
+                split_value   = curr_split[2]
 
                 if isinstance(split_value, str):
                     split_value = self.amountFromPayPal(split_value)
-                if len(split) > 3:
-                    split_uuid = self.lookupAccountUUID(split_account, type=split[3])
+                if len(curr_split) > 3:
+                    split_uuid = self.lookupAccountUUID(split_account, type=curr_split[3])
                 else:
                     split_uuid = self.lookupAccountUUID(split_account)
 
