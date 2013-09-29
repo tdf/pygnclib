@@ -76,23 +76,6 @@ class InputLine:
                                                self.transaction_id,
                                                self.reference_txn)
 
-# convert float from paypal number string
-def amountFromPayPal(value):
-    # assume German locale here for the while
-    minusIdx = value.find("-")
-    preMult  = 1
-    if minusIdx != -1:
-        value = value[minusIdx+1:]
-        preMult  = -1
-    # kill all thousands separators, split off fractional part
-    value_parts = value.replace(".","").split(',')
-    if len(value_parts) == 1:
-        return preMult * float(value_parts[0])
-    if len(value_parts) == 2:
-        return preMult * (float(value_parts[0]) + float(value_parts[1])/(10**len(value_parts[1])))
-    else:
-        raise IndexError
-
 # convert number to integer string (possibly via conversion to rational number)
 def gnucashFromAmount(value):
     rational_value = Fraction(value).limit_denominator(1000)
@@ -108,11 +91,28 @@ class PayPalConverter:
         self.default_currency = args.currency
         self.currency_converter = CurrencyConverter(verbosity=args.verbosity)
 
+    # convert float from paypal number string
+    def amountFromPayPal(self, value):
+        # assume German locale here for the while
+        minusIdx = value.find("-")
+        preMult  = 1
+        if minusIdx != -1:
+            value = value[minusIdx+1:]
+            preMult = -1
+        # kill all thousands separators, split off fractional part
+        value_parts = value.replace(".","").split(',')
+        if len(value_parts) == 1:
+            return preMult * float(value_parts[0])
+        if len(value_parts) == 2:
+            return preMult * (float(value_parts[0]) + float(value_parts[1])/(10**len(value_parts[1])))
+        else:
+            raise IndexError
+
     # wrap the converter here, to be able to convert value to float if
     # necessary
     def currencyConvert(self, value, currency, txn_date):
         if isinstance(value, str):
-            value = amountFromPayPal(value)
+            value = self.amountFromPayPal(value)
         return self.currency_converter.convert(value, currency, args.currency, txn_date)
 
     # lookup account with given name (and optionally type) in dict (or
@@ -163,8 +163,11 @@ class PayPalConverter:
                 split_value   = split[2]
 
                 if isinstance(split_value, str):
-                    split_value = amountFromPayPal(split_value)
-                split_uuid = self.lookupAccountUUID(split_account)
+                    split_value = self.amountFromPayPal(split_value)
+                if len(split) > 3:
+                    split_uuid = self.lookupAccountUUID(split_account, type=split[3])
+                else:
+                    split_uuid = self.lookupAccountUUID(split_account)
 
                 transaction.splits.append(
                     trn.split(
@@ -181,8 +184,11 @@ class PayPalConverter:
                 split_value   = split[2]
 
                 if isinstance(split_value, str):
-                    split_value = amountFromPayPal(split_value)
-                split_uuid = self.lookupAccountUUID(split_account)
+                    split_value = self.amountFromPayPal(split_value)
+                if len(split) > 3:
+                    split_uuid = self.lookupAccountUUID(split_account, type=split[3])
+                else:
+                    split_uuid = self.lookupAccountUUID(split_account)
 
                 transaction.splits.append(
                     trn.split(
@@ -192,6 +198,8 @@ class PayPalConverter:
                         split.value( gnucashFromAmount(-split_value) ),
                         split.quantity( gnucashFromAmount(-split_value) ),
                         split.account( split_uuid, type="guid" )) )
+
+            self.document.append(transaction)
 
         except pyxb.UnrecognizedContentError as e:
             print '*** ERROR validating input:'
@@ -210,7 +218,6 @@ def default_importer(converter, **kwargs):
             currLine.transaction_gross, currLine.transaction_currency,
             currLine.transaction_fee, currLine.transaction_currency,
             currLine.transaction_net),
-        ,
         txn=([('PayPal',    "Unknown transaction", currLine.transaction_net)],
              [('Imbalance', "Unknown PayPal",      currLine.transaction_net)]) )
 
