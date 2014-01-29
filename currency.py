@@ -9,6 +9,7 @@
 
 import os.path, re, datetime
 import xml.etree.ElementTree as ElemTree
+from bs4 import BeautifulSoup
 import urllib2, json
 
 # convert Eurofxref xml to dict
@@ -77,10 +78,13 @@ class CurrencyConverter:
             return convertHistoricCurrency(self.historic_exchange_rates, value, from_currency, to_currency, date, self.verbosity)
         except:
             if self.verbosity > 0: print 'Error in convertHistoricCurrency(%s, %s, %s), falling back to google app' % (value, from_currency, date)
-            url = 'http://rate-exchange.appspot.com/currency?from=%s&to=%s' % (from_currency, to_currency)
+            url = 'https://www.google.com/finance/converter?a=1&from=%s&to=%s' % (from_currency, to_currency)
             if self.current_exchange_rates.has_key(url):
                 res = self.current_exchange_rates[url]
             else:
-                res = urllib2.urlopen(url).read()
-                self.current_exchange_rates[url] = res
-            return value * float(json.loads( res )['rate'])
+                tree = BeautifulSoup(urllib2.urlopen(url).read())
+                span = tree.find(attrs={"class": "bld"})
+                if span is not None:
+                    res = span.string.split()[0]
+                    self.current_exchange_rates[url] = res
+            return value * float(res)
