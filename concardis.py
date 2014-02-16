@@ -7,7 +7,7 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #
 
-import sys, gzip, uuid
+import sys, gzip, uuid, logging
 import pyxb, csv, argparse
 import re, datetime
 from currency import CurrencyConverter
@@ -157,6 +157,10 @@ args = parser.parse_args()
 gncfile = args.ledger_gnucash
 csvfile = args.concardis_csv
 outfile = args.output_gnucash
+
+logger = logging.StreamHandler()
+logger.setLevel(logging.INFO if args.verbosity > 0 else logging.ERROR)
+logging.getLogger('').addHandler(logger)
 
 if args.verbosity > 0: print "Opening gnc file"
 
