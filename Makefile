@@ -30,6 +30,6 @@ $(OUTDIR)/gnucash.py: $(OUTDIR)/xsd/toplevel.xsd $(OUTDIR)/xsd/gnc.xsd
 
 check: $(OUTDIR)/gnucash.py test.py gnc-testdata.xml paypal.py testfile.csv
 	PYTHONPATH=${PYXB_ROOT}:$(OUTDIR) python test.py gnc-testdata.xml $(OUTDIR)/testout.xml
-	PYTHONPATH=${PYXB_ROOT}:$(OUTDIR) python paypal.py -p gnc-testdata.xml testfile.csv $(OUTDIR)/paypalout.xml
+	PYTHONPATH=${PYXB_ROOT}:$(OUTDIR) python paypal.py -v -p -s test_paypal_donation -s test_paypal_currency_conversion gnc-testdata.xml testfile.csv $(OUTDIR)/paypalout.xml
 
 # vim: set noet sw=4 ts=4:
