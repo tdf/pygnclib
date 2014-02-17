@@ -20,3 +20,18 @@ validate transaction IDs against existing entries in the file, to
 
  --------------------------------------------------------------------
 
+#3 --------------------------------------------------------------------
+
+Much too memory-hungry currently.
+
+try:
+ http://stackoverflow.com/questions/110259/which-python-memory-profiler-is-recommended
+ http://tech.oyster.com/save-ram-with-python-slots/
+ https://en.wikipedia.org/wiki/PyPy
+
+#4 --------------------------------------------------------------------
+
+Consolidate .pygnclib scripts
+
+ --------------------------------------------------------------------
+
