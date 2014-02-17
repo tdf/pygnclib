@@ -52,7 +52,11 @@ def getGNCDateStr(date_obj):
 class InputLine:
     def __init__(self, line):
         # remove crap, encode into unicode
-        name = re.sub(r"[\x01-\x1F\x7F]", "", line[" Name"])
+        try:
+            name = re.sub(r"[\x01-\x1F\x7F]", "", line[" Name"])
+        except:
+            if args.verbosity > 0: print "Failing line cleanse: %s" % str(line)
+
         self.name = name.decode(args.encoding)
         self.transaction_date = datetime.strptime(
             line["Date"] + " " + line[" Time"],
