@@ -193,7 +193,7 @@ if args.script:
     for index,script in enumerate(args.script):
         ns_name = "script"+str(index)
         exec "import "+script+" as "+ns_name
-        conversion_scripts[eval(ns_name+".type_curr_desc")] = ns_name
+        conversion_scripts[eval(ns_name+".type_curr")] = ns_name
 
 if args.verbosity > 0: print "Importing CSV transactions"
 
@@ -219,7 +219,7 @@ for index,line in enumerate(bitpay_csv):
     importer = default_importer
 
     # find matching conversion script
-    lookup_key = transaction_type+transaction_currency+transaction_desc
+    lookup_key = transaction_type+transaction_currency
     if conversion_scripts.has_key(lookup_key):
         account1_name = eval(conversion_scripts[lookup_key]+".account1_name")
         account2_name = eval(conversion_scripts[lookup_key]+".account2_name")
