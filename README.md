@@ -77,6 +77,8 @@ command lines will do:
 
     PYTHONPATH=pyxb:out:~/.pygnclib ./concardis.py -v -p -s concardis_visa -s concardis_maestro -s concardis_giropay -s concardis_mastercard tdf-charity-2013-01.gnucash Concardis-transactions-Jan-2013.csv tdf-charity-2013-01_review.gnucash
 
+    PYTHONPATH=pyxb:out:~/.pygnclib ./bitpay.py -v -p -s bitpay_sale -s bitpay_fee -s bitpay_sweep tdf-charity-2013-01.gnucash Bitpay-Export.csv tdf-charity-2013-01_review.gnucash
+
 
 History
 -------
