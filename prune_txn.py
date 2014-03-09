@@ -120,14 +120,14 @@ if args.date:
             exit(1)
         if dt_range[0] == '':
             upper=datetime.strptime(dt_range[1], '%Y-%m-%d')
-            dates.append( lambda x: x <= upper )
+            dates.append( lambda x, upper=upper: x <= upper )
         elif dt_range[1] == '':
             lower=datetime.strptime(dt_range[0], '%Y-%m-%d')
-            dates.append( lambda x: lower <= x)
+            dates.append( lambda x, lower=lower: lower <= x)
         else:
             lower=datetime.strptime(dt_range[0], '%Y-%m-%d')
             upper=datetime.strptime(dt_range[1], '%Y-%m-%d')
-            dates.append( lambda x: lower <= x <= upper )
+            dates.append( lambda x, lower=lower, upper=upper: lower <= x <= upper )
 
 # fill compiled regexs we want memo / desc strings to match against
 regexps = [ re.compile(x) for x in args.match ]
