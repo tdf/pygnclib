@@ -28,8 +28,12 @@ $(OUTDIR)/xsd/toplevel.xsd: toplevel.xsd
 $(OUTDIR)/gnucash.py: $(OUTDIR)/xsd/toplevel.xsd $(OUTDIR)/xsd/gnc.xsd
 	PYTHONPATH=${PYXB_ROOT} ${PYXB_ROOT}/scripts/pyxbgen --default-namespace-public --schema-root=$(OUTDIR)/xsd --binding-root=$(OUTDIR) --module=gnucash -u toplevel.xsd
 
-check: $(OUTDIR)/gnucash.py test.py gnc-testdata.xml paypal.py testfile.csv
+check: $(OUTDIR)/gnucash.py test.py gnc-testdata.xml paypal.py testfile.csv prune_txn.py export_csv.py
 	PYTHONPATH=${PYXB_ROOT}:$(OUTDIR) python test.py gnc-testdata.xml $(OUTDIR)/testout.xml
 	PYTHONPATH=${PYXB_ROOT}:$(OUTDIR) python paypal.py -v -p -s test_paypal_donation -s test_paypal_currency_conversion gnc-testdata.xml testfile.csv $(OUTDIR)/paypalout.xml
+	PYTHONPATH=${PYXB_ROOT}:$(OUTDIR) python paypal.py -v -p -s test_paypal_donation -s test_paypal_currency_conversion $(OUTDIR)/paypalout.xml testfile.csv $(OUTDIR)/paypalout2.xml
+	PYTHONPATH=${PYXB_ROOT}:$(OUTDIR) python prune_txn.py -v -p -a PayPal -d 2012-12-01..2013-01-01 -m '.* - ID: (\w+) - .*' $(OUTDIR)/paypalout2.xml $(OUTDIR)/prunedout.xml
+	PYTHONPATH=${PYXB_ROOT}:$(OUTDIR) python prune_txn.py -v -p -a PayPal -d 2012-01-01..2013-01-01 -m '.*Random Name 2.*' $(OUTDIR)/prunedout.xml $(OUTDIR)/prunedout2.xml
+	python export_csv.py $(OUTDIR)/prunedout2.xml 71607cde73afae2edaf31c2107319999 > $(OUTDIR)/final.csv
 
 # vim: set noet sw=4 ts=4:

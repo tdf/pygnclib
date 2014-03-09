@@ -56,13 +56,21 @@ def lookupAccountUUID(xml_tree, account_name):
     exit(1)
 
 # main script
-parser = argparse.ArgumentParser(description="Delete certain transactions",
-                                 epilog="Delete some or all transactions in one account, matching certain criteria")
+parser = argparse.ArgumentParser(description="Prune certain transactions",
+                                 epilog="Delete transactions in one account, matching certain criteria. "
+                                        "Give one or more instances of -d or -m, with the latter supporting the "
+                                        "following syntax: Python regexp are permitted, with each group being matched "
+                                        "against corresponding other matches'. Example: '.*txn id: (\W+).*'. Transactions "
+                                        "with matching corresponding group content (in this case: same transaction ids) "
+                                        "will have all but the newest transaction removed. If you need to prune *all* "
+                                        "transactions of a certain kind, leave out the grouping. Example: '.*withdrawal.*' "
+                                        "will remove *all* matching withdrawal transactions.")
 parser.add_argument("-v", "--verbosity", action="count", default=0, help="Increase verbosity by one (defaults to off)")
 parser.add_argument("-p", "--pretty", action="store_true", default=False, help="Export xml pretty-printed (defaults to off)")
 parser.add_argument("-a", "--account", action="append", help="Account names to match")
 parser.add_argument("-d", "--date", action="append", help="Date range, e.g. 2012-01-01..2012-02-01, or 2012-01-01..")
-parser.add_argument("-m", "--memo", action="append", help="Memo or description string to match. Can be regexp")
+parser.add_argument("-m", "--match", action="append", help="Template string for description to match. Can be regexp. Use "
+                                                           "grouping to request dupe removals.")
 parser.add_argument("ledger_gnucash", help="GnuCash ledger you want to import into")
 parser.add_argument("output_gnucash", help="Output GnuCash ledger file")
 args = parser.parse_args()
@@ -93,7 +101,7 @@ except pyxb.UnrecognizedDOMRootNodeError as e:
     print '*** ERROR matching content:'
     print e.details()
 
-if args.verbosity > 0: print "Deleting transactions"
+if args.verbosity > 0: print "Attempting delete over %d transactions..." % len(doc.book.transaction)
 
 # fill uuids of accounts we want to match
 accounts = {}
@@ -122,13 +130,11 @@ if args.date:
             dates.append( lambda x: lower <= x <= upper )
 
 # fill compiled regexs we want memo / desc strings to match against
-memos = []
-if args.memo:
-    for exp in args.memo:
-        memos.append( re.compile(exp) )
+regexps = [ re.compile(x) for x in args.match ]
 
 # go through all Txn (backwards, to make inplace deletion not screw
-# up)
+# up iterator)
+matches = {}
 for index in range(len(doc.book.transaction) - 1, -1, -1):
     txn = doc.book.transaction[index]
     match = False
@@ -151,21 +157,32 @@ for index in range(len(doc.book.transaction) - 1, -1, -1):
             continue
 
     match = False
-    if len(memos):
-        for exp in memos:
-            if exp.match( txn.description ) is not None:
+    if len(regexps):
+        key = ""
+        for exp in regexps:
+            m0 = exp.match( txn.description )
+            if m0 is not None:
                 match = True
+                key = "".join(m0.groups())
                 break
             for split in txn.splits.split:
-                if exp.match( split.memo ) is not None:
+                m1 = exp.match( split.memo )
+                if m1 is not None:
                     match = True
+                    key = "".join(m1.groups())
                     break
         if not match:
             continue
 
-    if args.verbosity > 0: print "Deleting txn %s" % txn.description
+        # dupe removal case? empty key otherwise means 'remove all
+        # matches'
+        if len(key) > 0:
+            if not key in matches:
+                # new encounter, stick into dict, do *not* remove
+                matches[key] = True
+                continue
 
-    # got a match, kill current txn
+    if args.verbosity > 0: print "Deleting txn %s" % txn.description
     del doc.book.transaction[index]
 
 if args.verbosity > 0: print "Writing resulting ledger"
