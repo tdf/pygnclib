@@ -60,6 +60,11 @@ def strFromDate(date_value):
 def amountFromCSV(value):
     # assume std US locale here for the while - don't use python float
     # conversion, which is locale-dependent.
+    minusIdx = value.find("-")
+    preMult  = 1
+    if minusIdx != -1:
+        value = value[minusIdx+1:]
+        preMult = -1
     # kill all thousands separators, split off fractional part
     value_parts = value.replace(",","").split('.')
     if len(value_parts) == 1:
@@ -124,7 +129,7 @@ def createTransaction(transaction_date, account1_uuid, account1_memo, account2_u
         print '*** ERROR validating input:'
         print 'Unrecognized element "%s" at %s (details: %s)' % (e.content.expanded_name, e.content.location, e.details())
 
-def default_importer(createTransaction, account1_uuid, account2_uuid, account_foreignasset_uuid, account_foreigntrading_uuid,
+def default_importer(createTransaction, account1_uuid, account2_uuid,
                      transaction_ref, transaction_order_date,
                      transaction_payment_date, transaction_status, transaction_name, transaction_value, transaction_convertedvalue,
                      transaction_currency, transaction_defaultcurrency, transaction_method, transaction_brand, transaction_comment,

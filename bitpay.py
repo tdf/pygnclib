@@ -60,12 +60,17 @@ def strFromDate(date_value):
 def amountFromCSV(value):
     # assume std US locale here for the while - don't use python float
     # conversion, which is locale-dependent.
+    minusIdx = value.find("-")
+    preMult  = 1
+    if minusIdx != -1:
+        value = value[minusIdx+1:]
+        preMult = -1
     # kill all thousands separators, split off fractional part
     value_parts = value.replace(",","").split('.')
     if len(value_parts) == 1:
-        return float(value_parts[0])
+        return preMult * float(value_parts[0])
     if len(value_parts) == 2:
-        return  (float(value_parts[0]) + float(value_parts[1])/(10**len(value_parts[1])))
+        return preMult * (float(value_parts[0]) + float(value_parts[1])/(10**len(value_parts[1])))
     else:
         raise IndexError
 
