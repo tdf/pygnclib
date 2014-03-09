@@ -160,13 +160,13 @@ for index in range(len(doc.book.transaction) - 1, -1, -1):
     if len(regexps):
         key = ""
         for exp in regexps:
-            m0 = exp.match( txn.description )
+            m0 = exp.match( txn.description if txn.description else "" )
             if m0 is not None:
                 match = True
                 key = "".join(m0.groups())
                 break
             for split in txn.splits.split:
-                m1 = exp.match( split.memo )
+                m1 = exp.match( split.memo if split.memo else "" )
                 if m1 is not None:
                     match = True
                     key = "".join(m1.groups())
