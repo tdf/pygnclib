@@ -130,7 +130,9 @@ if args.date:
             dates.append( lambda x, lower=lower, upper=upper: lower <= x <= upper )
 
 # fill compiled regexs we want memo / desc strings to match against
-regexps = [ re.compile(x) for x in args.match ]
+regexps = []
+if args.match:
+    regexps = [ re.compile(x) for x in args.match ]
 
 # go through all Txn (backwards, to make inplace deletion not screw
 # up iterator)
