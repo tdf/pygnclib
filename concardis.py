@@ -208,7 +208,7 @@ for index,line in enumerate(concardis_csv):
     transaction_ref = line["REF"]
     transaction_order_date = dateFromCSV(line["ORDER"])
     transaction_payment_date = dateFromCSV(line["PAYDATE"])
-    transaction_status = line["LIB"]
+    transaction_status = line["STATUS"]
 
     # remove crap, encode into unicode
     transaction_name = re.sub(r"[\x01-\x1F\x7F]", "", line["NAME"])

@@ -33,7 +33,7 @@ check: $(OUTDIR)/gnucash.py test.py gnc-testdata.xml paypal.py bitpay.py concard
 	PYTHONPATH=${PYXB_ROOT}:$(OUTDIR) python paypal.py -v -p -s test_paypal_donation -s test_paypal_currency_conversion gnc-testdata.xml testfile.csv $(OUTDIR)/paypalout.xml
 	PYTHONPATH=${PYXB_ROOT}:$(OUTDIR) python paypal.py -v -p -s test_paypal_donation -s test_paypal_currency_conversion $(OUTDIR)/paypalout.xml testfile.csv $(OUTDIR)/paypalout2.xml
 	PYTHONPATH=${PYXB_ROOT}:$(OUTDIR) python bitpay.py -v -p $(OUTDIR)/paypalout2.xml bitpaytest.csv $(OUTDIR)/paypalout3.xml
-	PYTHONPATH=${PYXB_ROOT}:$(OUTDIR) python concardis.py -v -p $(OUTDIR)/paypalout3.xml concardistest.csv $(OUTDIR)/paypalout4.xml
+	PYTHONPATH=${PYXB_ROOT}:$(OUTDIR) python concardis.py -v -p -s test_concardis_donation $(OUTDIR)/paypalout3.xml concardistest.csv $(OUTDIR)/paypalout4.xml
 	PYTHONPATH=${PYXB_ROOT}:$(OUTDIR) python prune_txn.py -v -p -a PayPal -d 2012-12-01..2013-01-01 -m '.* - ID: (\w+) - .*' \
        -d 2010-01-01..2010-12-01 -m 'do_not_match' $(OUTDIR)/paypalout4.xml $(OUTDIR)/prunedout.xml
 	PYTHONPATH=${PYXB_ROOT}:$(OUTDIR) python prune_txn.py -v -p -a PayPal -d 2012-01-01..2013-01-01 -m '.*Random Name 2.*' \
