@@ -211,8 +211,11 @@ for index,line in enumerate(concardis_csv):
     transaction_status = line["STATUS"]
 
     # remove crap, encode into unicode
-    transaction_name = re.sub(r"[\x01-\x1F\x7F]", "", line["NAME"])
-    transaction_name = transaction_name.decode(args.encoding)
+    try:
+        transaction_name = re.sub(r"[\x01-\x1F\x7F]", "", line["NAME"])
+    except:
+        if args.verbosity > 0: print "Failing line cleanse: %s" % str(line)
+    transaction_name = transaction_name.decode(args.encoding, errors='ignore')
 
     transaction_value = amountFromCSV(line["TOTAL"])
     transaction_currency = line["CUR"]
