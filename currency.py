@@ -35,6 +35,9 @@ def convertHistoricCurrency(historic_exchange_rates, value, from_currency, to_cu
             if verbosity > 0: print 'Downloading eurofxref'
             if not os.path.exists(path):
                 os.mkdir(path)
+            # if ever 90 days of history is not enough,
+            # http://www.ecb.int/stats/eurofxref/eurofxref-hist.xml
+            # has the full history since the 90ties.
             content = urllib2.urlopen('http://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist-90d.xml').read()
             # and buffer for the next time
             f = open(filename, "wb")
