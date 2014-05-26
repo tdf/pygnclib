@@ -57,7 +57,7 @@ class InputLine:
         except:
             if args.verbosity > 0: print "Failing line cleanse: %s" % str(line)
 
-        self.name = name.decode(args.encoding)
+        self.name = name.decode(args.encoding, errors='ignore')
         self.transaction_date = datetime.strptime(
             line["Date"] + " " + line[" Time"],
             '%d.%m.%Y %H:%M:%S')
